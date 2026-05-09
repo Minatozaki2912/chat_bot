@@ -1,0 +1,13 @@
+# Môi trường ảo (nếu có)
+venv/
+env/
+
+# Cache của Python
+__pycache__/
+*.pyc
+
+# File biến môi trường (Cực kỳ quan trọng để bảo mật XAI_API_KEY)
+.env
+
+# Thư mục lưu ảnh sinh ra (để Git không bị nặng)
+outputs/

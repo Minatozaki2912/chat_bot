@@ -1,0 +1,91 @@
+Tài liệu Tổng quan Dự án: Bestie POD ✨
+1. Giới thiệu chung
+Bestie POD là một hệ thống trợ lý ảo thông minh chuyên sâu cho lĩnh vực thiết kế áo thun theo yêu cầu (Print-on-Demand). Dự án kết hợp sức mạnh của mô hình ngôn ngữ lớn (Grok-4.3) và khả năng thị giác máy tính để chuyển hóa ý tưởng của người dùng thành các bản thiết kế sẵn sàng để sản xuất.
+
+2. Các Tính năng Cốt lõi
+Dự án được xây dựng với 4 trụ cột tính năng chính:
+
+Magic Templates (Phép thuật thiết kế): Cung cấp các công thức xử lý ảnh chuyên sâu bao gồm:
+
+Style Transfer: Áp dụng phong cách nghệ thuật từ ảnh mẫu lên chủ thể chính.
+
+Face & Character Swap: Ghép khuôn mặt idol/người thật vào nhân vật hoạt hình/game mà vẫn giữ nguyên nét vẽ của bối cảnh.
+
+True Replacement: Thay thế hoàn toàn chủ thể cũ bằng chủ thể mới trong một bố cục có sẵn.
+
+Khảo sát Động (Context-Aware Survey): Hệ thống tự động phân tích ý tưởng khách hàng để tạo ra 2-3 câu hỏi trắc nghiệm linh hoạt, tập trung vào các chi tiết thị giác còn thiếu (nét vẽ, bối cảnh, phụ kiện) thay vì dùng các câu hỏi cố định.
+
+Hệ thống RAG (Knowledge Retrieval): Tích hợp sổ tay tri thức để AI có thể tư vấn chính xác về chính sách vận hành (làm việc T2-T6), thời gian sản xuất (1-2 ngày), và thông số size áo (S-XL).
+
+Xử lý Ảnh Chuyên nghiệp (Production Ready): Tự động chuyển đổi kết quả AI thành file PNG độ phân giải 4500x5400px, 300 DPI với nền trong suốt, đảm bảo tiêu chuẩn in ấn máy DTG.
+
+3. Kiến trúc Kỹ thuật (Tech Stack)
+Backend Framework: FastAPI xử lý các yêu cầu không đồng bộ và quản lý API.
+
+AI Engine: xAI API sử dụng model grok-4.3 cho hội thoại và grok-imagine-image-quality cho sinh ảnh.
+
+Xử lý Hình ảnh: Thư viện Pillow (PIL) dùng để hiệu chỉnh kích thước, mật độ điểm ảnh và tách nền.
+
+Quản lý Trạng thái: Hệ thống Database trên RAM lưu trữ accumulated_ideas để duy trì trí nhớ hội thoại (Stateful).
+
+Frontend: Giao diện Single Page Application (SPA) hiện đại với bộ nhớ session gallery để người dùng có thể Edit/Retry các bản thiết kế cũ.
+
+4. Cấu trúc File & Vai trò
+config.py: Lưu trữ các tham số cấu hình hệ thống, API Key và thiết lập mức độ suy luận (Reasoning Effort) cho AI.
+
+main.py: Điều phối luồng dữ liệu giữa người dùng và AI, thực hiện bóc tách Base64 và xử lý hậu kỳ cho ảnh thiết kế.
+
+prompts.py: "Bộ não" của hệ thống, chứa System Prompt quy định persona "Bestie" và JSON Schema để AI trả về dữ liệu có cấu trúc.
+
+templates.json: Thư viện chứa các quy tắc (Master Prompt Rules) cho từng loại hình mix ảnh cụ thể.
+
+knowledge.json: Cơ sở dữ liệu tri thức về sản phẩm và chính sách xưởng in.
+
+database.py: Quản lý ID phản hồi và dữ liệu thực thể đã lưu để AI không bị quên ý tưởng qua các lượt chat.
+
+5. Quy trình Vận hành (Workflow)
+Tiếp nhận: Người dùng gửi ý tưởng bằng text hoặc upload ảnh (Chủ thể/Style) thông qua giao diện.
+
+Phân tích: AI sử dụng vision_analysis để bóc tách đặc điểm hình học, phong cách và bố cục của ảnh.
+
+Khai thác: Nếu ý tưởng chưa rõ, AI tạo Form Survey để khách hàng chọn lựa các biến số thị giác.
+
+Tối ưu Lệnh (Prompt Assembly): Hệ thống lắp ráp Master Prompt theo công thức: [Template Rule] + [Subject Analysis] + [Style Analysis] + [User Note].
+
+Render & Refine: AI sinh ảnh dựa trên lệnh đã tối ưu, sau đó Backend thực hiện căn giữa và tách nền để cho ra file in cuối cùng.
+
+*Run code
+Bước 1: Cài đặt thư viện cần thiết
+Đầu tiên, cậu cần mở Terminal (hoặc Command Prompt) tại thư mục gốc của dự án và chạy lệnh sau để cài đặt toàn bộ các thư viện cốt lõi (bao gồm FastAPI, Uvicorn, Pillow, v.v.):
+
+Bash
+pip install -r requirements.txt
+(Khuyên dùng: Cậu nên tạo một môi trường ảo - virtual environment trước khi cài để tránh xung đột thư viện với các dự án khác trong máy).
+
+Bước 2: Thiết lập biến môi trường (API Key)
+Dự án của cậu sử dụng thư viện python-dotenv để nạp các thông tin cấu hình bảo mật một cách an toàn.
+
+Tạo một file mới có tên chính xác là .env (nhớ có dấu chấm ở đầu) nằm ở thư mục gốc của dự án.
+
+Mở file .env lên và cấu hình API Key của xAI vào như sau:
+
+Đoạn mã
+XAI_API_KEY=điền_api_key_của_cậu_vào_đây
+Bước 3: Khởi chạy Server Backend
+Do cậu đã thiết lập sẵn khối lệnh chạy uvicorn.run(app, host="127.0.0.1", port=8000) ở cuối file main.py, cậu có thể khởi động server bằng 2 cách:
+
+Cách 1 (Chạy trực tiếp bằng Python):
+
+Bash
+python main.py
+(Nếu file main.py đang nằm trong thư mục app, cậu dùng lệnh: python -m app.main)
+
+Cách 2 (Chạy bằng lệnh Uvicorn - Khuyên dùng khi đang code):
+
+Bash
+uvicorn main:app --reload
+(Lệnh này có cờ --reload sẽ giúp server tự động khởi động lại mỗi khi cậu chỉnh sửa và lưu code, cực kỳ tiện lợi).
+
+Bước 4: Trải nghiệm thành quả
+Khi Terminal báo server đã chạy thành công, cậu chỉ cần mở trình duyệt web lên và truy cập vào địa chỉ:
+👉 http://127.0.0.1:8000 Lúc này, giao diện web HTML của Bestie POD sẽ hiện ra và cậu có thể bắt đầu quá trình chat, upload ảnh và sinh hình in.

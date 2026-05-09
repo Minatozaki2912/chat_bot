@@ -1,0 +1,42 @@
+{
+  "style_transfer": {
+    "id": "style_transfer",
+    "name": "Đổi nét vẽ (Style Transfer)",
+    "ui_demo": {
+      "subject": "https://i.postimg.cc/kXQVHD8M/image-(10).png",
+      "style": "https://i.postimg.cc/R0NZv037/base64-17678622803041631915371.png",
+      "result": "https://i.postimg.cc/VsjLfp6c/pod-design-1778227836.png"
+    },
+    "master_prompt_rule": "[STRICT RULE - PURE STYLE TRANSFER & ANTI-BLEEDING]: You are performing a strict 1:1 content recreation of the Main Subject Image using ONLY the aesthetic of the Style Reference.\n\n1. CONTENT LOCK (IMAGE 1): You MUST draw EXACTLY what is in Image 1. Preserve the exact identity, facial features, uncovered eyes, hair, clothing, and pose. DO NOT add elements that are not explicitly present in Image 1.\n2. ANTI-BLEEDING PROTOCOL (CRITICAL): Visual conditioning often causes accessories (like sunglasses, hats, masks, or weapons) from the Style Reference to bleed onto the new subject. YOU MUST ACTIVELY PREVENT THIS. If Image 1 has visible eyes and no eyewear, the final render MUST have clearly drawn eyes and ABSOLUTELY NO eyewear. Forcefully reject ALL foreign physical objects from Image 2.\n3. STYLE ISOLATION (IMAGE 2): Extract ONLY the artistic medium, geometric fragmentation, line thickness, shading, and color palette. You are completely BLIND to the subjects and accessories in the Style Reference.\n\n[POD OUTPUT SPECS]: Final output MUST be an ultra-high resolution, strictly isolated standalone graphic on a pure solid white background. Apply a die-cut sticker design with clean contour edges. NO rectangular frames. Professional Print-on-Demand design ready for transparent PNG cutout."
+  },
+  "face_character_swap": {
+    "id": "face_character_swap",
+    "name": "Thay đổi gương mặt và nhân vật (Face & Character Swap)",
+    "ui_demo": {
+      "subject": "URL_ANH_IDOL",
+      "style": "URL_ANH_JASMINE",
+      "result": "URL_ANH_KET_QUA"
+    },
+    "master_prompt_rule": "[STRICT RULE - HYBRID COMPOSITION]: You are creating a precise crossover by extracting specific elements from both references.\n\n1. FACE & IDENTITY (IMAGE 1): Extract ONLY the facial features, specific identity, and expression from Image 1. Completely DISCARD their original body, clothing, and background.\n2. CHARACTER BODY, COSTUME & STYLE (IMAGE 2): Extract the character's body anatomy, exact costume, pose, accessories, background, and specific 2D art style/color palette from Image 2. DISCARD the original face from Image 2.\n3. INTEGRATION: Graft the face from Image 1 onto the body of Image 2. The newly inserted face MUST be completely redrawn in the exact illustrative/2D art style of Image 2. ABSOLUTELY DO NOT render a photorealistic face. It must look exactly like the original artist of Image 2 drew the person from Image 1 wearing that costume.\n\n[POD OUTPUT SPECS]: Final output MUST be an ultra-high resolution, strictly isolated standalone graphic on a pure solid white background. Apply a die-cut sticker design with clean contour edges. NO rectangular frames. Professional Print-on-Demand design ready for transparent PNG cutout."
+  },
+  "subject_replacement_layout": {
+    "id": "subject_replacement_layout",
+    "name": "Thay chủ thể & Giữ bố cục (Layout Match)",
+    "ui_demo": {
+      "subject": "https://i.postimg.cc/fLqyx06f/breed-abyssinian-cat.jpg",
+      "style": "https://i.postimg.cc/ZqV5SdKT/t-shirt-white-s-give-them-the-old-razzle-dazzle-funny-cat-t-shirt-47222066807091.jpg",
+      "result": "https://i.postimg.cc/wjkm13Tw/pod-design-1778228124.png"
+    },
+    "master_prompt_rule": "[STRICT RULE]: You are performing precise subject replacement while keeping the original design 100% intact. Replace ONLY the main character in the Style Reference Image with the character from the Main Subject Image.\nKeep EXACTLY the same: art style, line art thickness, color palette, shading technique, pose, body language, background, text, layout, composition, sticker border (if any), and overall aesthetic.\nOnly change the physical appearance/features of the character to match the Main Subject. Do not alter the pose or any design elements outside the character itself.\n\n[POD OUTPUT SPECS]: Ensure the final image is an ultra-high resolution, strictly isolated standalone graphic on a pure solid white background. NO rectangular frames, NO full-bleed backgrounds, NO t-shirt fabric textures, NO mockups. Centered Print-on-Demand apparel graphic ready for PNG cutout."
+  },
+  "true_subject_replacement": {
+    "id": "true_subject_replacement",
+    "name": "Thay thế chủ thể hoàn toàn (True Replacement)",
+    "ui_demo": {
+      "subject": "https://i.postimg.cc/fb2sGQv3/449320403-939924097934822-3172936397425547175-n-2039-1-1733131247-56-width640height960.jpg",
+      "style": "https://i.postimg.cc/wB3Zsyh8/ao-phong-whoau-steve-bear-tshirt-whrae3794u-bg-mau-xanh-navy-663b21b639602-08052024135446.webp",
+      "result": "https://i.postimg.cc/ZnWGt952/pod-design-1777877396.png"
+    },
+    "master_prompt_rule": "[STRICT RULE]: You are generating a completely new composite image.\n\n1. STRUCTURAL OVERRIDE (CRITICAL): The Main Subject from Image 1 MUST completely destroy and replace the physical silhouette of whatever was in the Style Reference. If both images contain similar themes (e.g., two different motorcycles), ABSOLUTELY DO NOT recycle the structural frame, wheels, or bulk of the Style Reference. You MUST force the exact geometric shape, size, and specific mechanical/clothing features of Image 1.\n2. STYLE: Render this subject strictly using the artistic medium, line art thickness, shading, and color palette defined in the Style Reference.\n3. TYPOGRAPHY & LAYOUT: Recreate 100% of the surrounding typography, text elements, and framing layout from the Style Reference. Wrap these text elements around the NEW Main Subject perfectly.\n\n[POD OUTPUT SPECS]: Final output MUST be an ultra-high resolution, strictly isolated standalone graphic on a pure solid white background. Apply a die-cut sticker design with clean contour edges. NO rectangular frames. Professional Print-on-Demand design ready for transparent PNG cutout."
+  }
+}

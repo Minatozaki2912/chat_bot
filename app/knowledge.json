@@ -1,0 +1,44 @@
+{
+  "chinh_sach_kinh_doanh": {
+    "thoi_gian_lam_viec": "Xưởng hoạt động từ Thứ 2 đến hết Thứ 6. Tối Thứ 6, Thứ 7, Chủ Nhật và ngày lễ xưởng nghỉ ngơi không làm việc và không giao hàng.",
+    "thoi_gian_san_xuat": "Xưởng vận hành theo mô hình Print-on-Demand cao cấp. Kể từ lúc chốt thiết kế, xưởng cần 1 đến 2 ngày làm việc (không tính T7, CN) để in ấn.",
+    "thoi_gian_giao_hang": "Giao hỏa tốc nội thành mất 1 ngày làm việc. Giao tiêu chuẩn đi các tỉnh khác mất từ 3-5 ngày làm việc. Thời gian giao hàng này là sau khi đã in xong.",
+    "chinh_sach_doi_tra": "Xưởng hỗ trợ đổi trả MIỄN PHÍ 100% trong 7 ngày đầu nếu lỗi thuộc về xưởng (in sai hình, rách vải, nhầm màu). Không áp dụng đổi trả nếu khách hàng chọn sai size áo đâu nè, nên cậu check bảng size kỹ nha!",
+    "huong_dan_bao_quan": "Để hình in bền màu nhất: Giặt máy lộn trái áo, dùng nước lạnh. KHÔNG ủi trực tiếp lên hình in và KHÔNG dùng nước tẩy mạnh."
+  },
+  "cong_nghe_in_an": {
+    "ao_thun_va_hoodie": "Sử dụng công nghệ in DTG (Direct-to-Garment) phun mực trực tiếp ngấm vào sợi vải, hoặc in Pet Chuyển Nhiệt cao cấp cho màu sắc rực rỡ, không hề bong tróc.",
+    "tui_tote_va_pillow": "In chuyển nhiệt Sublimation tràn viền siêu mượt, mực thấm sâu vào sợi canvas/nhung nỉ, giặt máy vò tay thoải mái không phai màu."
+  },
+  "danh_muc_san_pham_mau": {
+    "ao_thun": [
+      "https://i.postimg.cc/G2jZCZFY/ahri-mockup.jpg",
+      "https://i.postimg.cc/J0ndWt7g/jett-mockup.jpg",
+      "https://i.postimg.cc/4dnFDm3K/yoru-mockup.jpg"
+    ],
+    "tui_tote": [
+      "https://i.postimg.cc/L6WG2kP6/ahri-tote.jpg",
+      "https://i.postimg.cc/K8rVL6VF/jett-tote.jpg",
+      "https://i.postimg.cc/3wZsKZ8C/yoru-tote.jpg"
+    ],
+    "ao_hoodie": [
+      "https://i.postimg.cc/C5hpnFMh/ahri-hood.jpg",
+      "https://i.postimg.cc/Gh4S7B5Y/jett-hood.jpg",
+      "https://i.postimg.cc/CLb6pywd/yoru-hood.jpg"
+    ],
+    "pillow_goi": [
+      "https://i.postimg.cc/qBj9ZHM3/ahri-pillow.jpg",
+      "https://i.postimg.cc/fWJ6Fg3V/jett-pillow.jpg",
+      "https://i.postimg.cc/pdcsJRBt/yoru-pillow.jpg"
+    ]
+  },
+  "chat_lieu_va_size": {
+    "ao_thun": "Chất liệu: 100% Cotton 2 chiều, định lượng 250gsm dày dặn đứng form cực xịn. Bảng size: S (40-50kg), M (50-60kg), L (60-70kg), XL (70-85kg).",
+    "tui_tote": "Chất liệu: Vải Canvas mộc loại 1 cực dày, quai xách chữ X chịu lực 10kg. Kích thước: 35x40cm (đựng vừa khít Laptop 15.6 inch luôn).",
+    "ao_hoodie": "Chất liệu: Nỉ bông cotton 350gsm lót lông cừu siêu ấm. Bảng size: M (45-60kg), L (60-75kg), XL (75-90kg).",
+    "pillow": "Chất liệu: Vỏ gối nhung nỉ Hàn Quốc có khóa kéo tàng hình siêu sang, ruột bông gòn tinh khiết siêu phồng."
+  },
+  "chinh_sach_khuyen_mai": {
+    "giam_gia": "Giảm ngay 10% tổng hóa đơn nếu khách hàng đặt mua từ 3 sản phẩm trở lên. Dưới 3 sản phẩm thì bán đúng giá niêm yết."
+  }
+}
