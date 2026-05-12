@@ -6,3 +6,6 @@ jinja2
 python-multipart
 python-dotenv
 Pillow
+rembg
+opencv-python
+numpy

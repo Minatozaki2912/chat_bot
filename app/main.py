@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime
+from rembg import remove
 
 import app.config as config
 import app.prompts as prompts
@@ -179,18 +180,56 @@ def call_conversation_api(
     except Exception as e:
         print(f"Chat API Exception: {e}")
         return None
-# =====================================================================
-# 2. CỖ MÁY SINH ẢNH (Hỗ trợ Text-to-Image + Single + Multi-Image)
-# =====================================================================
 def call_image_generation(master_prompt: str, reference_images: list = None):
     headers = {
         "Authorization": f"Bearer {config.XAI_API_KEY}",
         "Content-Type": "application/json",
     }
 
+    transparent_instruction = """
+    IMPORTANT TRANSPARENT RULE:
+    - Final image MUST have **pure transparent background** (alpha channel = 0).
+    - Remove ALL background patterns, grids, checkerboard, or any residual background.
+    - Main subject (pug + text) must be perfectly centered with generous transparent padding around it.
+    """
+
+    full_prompt = master_prompt + "\n\n" + transparent_instruction
+
     payload = {
         "model": config.IMAGE_MODEL,
-        "prompt": master_prompt,
+        "prompt": full_prompt,
+        "response_format": "url",
+    }
+
+    if reference_images and len(reference_images) > 0:
+        url = f"{config.BASE_URL}/images/edits"
+        images_list = [{"type": "image_url", "url": get_valid_image_url(img)} for img in reference_images if img]
+        if len(images_list) == 1:
+            payload["image"] = images_list[0]
+        else:
+            payload["images"] = images_list
+    else:
+        url = f"{config.BASE_URL}/images/generations"
+
+def call_image_generation(master_prompt: str, reference_images: list = None):
+    headers = {
+        "Authorization": f"Bearer {config.XAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    transparent_instruction = """
+    CRITICAL TRANSPARENT REQUIREMENT:
+    - Pure transparent background ONLY outside the main subject.
+    - Keep ALL internal details, white areas, highlights, and light fur inside the subject intact.
+    - Do not remove bright pixels that belong to the main design.
+    - Clean edges but preserve internal colors and details.
+    """
+
+    full_prompt = master_prompt + "\n\n" + transparent_instruction
+
+    payload = {
+        "model": config.IMAGE_MODEL,
+        "prompt": full_prompt,
         "response_format": "url",
     }
 
@@ -209,35 +248,57 @@ def call_image_generation(master_prompt: str, reference_images: list = None):
         
         if response.status_code == 200:
             raw_url = response.json()["data"][0]["url"]
-
-            # === XỬ LÝ ẢNH CHUẨN PNG IN ÁO ===
             img_response = requests.get(raw_url)
             img = Image.open(io.BytesIO(img_response.content)).convert("RGBA")
 
-            # Resize giữ tỷ lệ
-            target_w, target_h = 4500, 5400
-            aspect = img.width / img.height
-            if aspect > (target_w / target_h):
-                new_w = target_w
-                new_h = int(target_w / aspect)
+            print("Đang xử lý transparent background...")
+
+            # === CHỈ XÓA NỀN TRẮNG NHẸ - KHÔNG XÓA NỀN ĐEN ===
+            datas = img.getdata()
+            new_data = []
+            
+            for r, g, b, a in datas:
+                brightness = (r * 0.299 + g * 0.587 + b * 0.114)
+                
+                # Chỉ xóa những vùng trắng cực mạnh ở nền ngoài
+                if brightness > 248 and a > 220:      # Ngưỡng rất cao để bảo vệ chi tiết trắng bên trong
+                    new_data.append((255, 255, 255, 0))
+                elif a < 160:                         # Xóa pixel quá mờ
+                    new_data.append((255, 255, 255, 0))
+                else:
+                    new_data.append((r, g, b, a))
+
+            img.putdata(new_data)
+
+            # === CROP + PADDING ===
+            import numpy as np
+            data = np.array(img)
+            alpha = data[:, :, 3]
+            coords = np.column_stack(np.where(alpha > 65))
+            
+            if len(coords) > 0:
+                y1, x1 = coords.min(axis=0)
+                y2, x2 = coords.max(axis=0)
+                cropped = img.crop((x1, y1, x2, y2))
             else:
-                new_h = target_h
-                new_w = int(target_h * aspect)
+                cropped = img
 
-            img_resized = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            padding_ratio = 0.22
+            pad_w = int(cropped.width * padding_ratio)
+            pad_h = int(cropped.height * padding_ratio)
 
-            # Tạo canvas trong suốt hoàn toàn
-            final_img = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))  # Nền trong suốt hoàn toàn
+            final_w = cropped.width + 2 * pad_w
+            final_h = cropped.height + 2 * pad_h
 
-            # Dán vào giữa
-            paste_x = (target_w - new_w) // 2
-            paste_y = (target_h - new_h) // 2
-            final_img.paste(img_resized, (paste_x, paste_y), img_resized)
+            final_img = Image.new("RGBA", (final_w, final_h), (0, 0, 0, 0))
+            final_img.paste(cropped, (pad_w, pad_h), cropped)
 
-            # Lưu PNG chất lượng cao
+            # Resize về kích thước in áo
+            target_w, target_h = 4500, 5400
+            final_img = final_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
             filename = f"pod_design_{int(time.time())}.png"
             filepath = os.path.join("outputs", filename)
-            
             final_img.save(filepath, format="PNG", dpi=(300, 300), optimize=True)
 
             return {"image_url": f"/outputs/{filename}", "error": None}
@@ -246,6 +307,7 @@ def call_image_generation(master_prompt: str, reference_images: list = None):
             return {"image_url": None, "error": response.text[:200]}
 
     except Exception as e:
+        print(f"Lỗi sinh ảnh: {e}")
         return {"image_url": None, "error": str(e)}
 
 # =====================================================================

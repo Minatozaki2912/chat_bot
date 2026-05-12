@@ -11,10 +11,10 @@ XAI_API_KEY = os.getenv("XAI_API_KEY")
 BASE_URL = "https://api.x.ai/v1"
 
 # === MODEL MỚI NHẤT ===
-CONVERSATION_MODEL = "grok-4.3"                    # Flagship model - Khuyến nghị dùng cho tất cả
+CONVERSATION_MODEL = "grok-4.20-0309-non-reasoning"                    # Flagship model - Khuyến nghị dùng cho tất cả
 
 # Model sinh ảnh (Quality mode - khuyến nghị cao nhất hiện tại)
-IMAGE_MODEL = "grok-imagine-image-quality"
+IMAGE_MODEL = "grok-imagine-image"
 
 # Tham số chung
 TEMPERATURE = 0.6                                 # Giảm xuống 0.4 cho output ổn định hơn khi dùng JSON schema
