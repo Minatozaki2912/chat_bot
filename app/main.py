@@ -5,14 +5,13 @@ import requests
 import time
 import io
 import base64
-from PIL import Image
+from PIL import Image, ImageDraw
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime
-from rembg import remove
-
+import numpy as np
 import app.config as config
 import app.prompts as prompts
 import app.database as database
@@ -180,52 +179,53 @@ def call_conversation_api(
     except Exception as e:
         print(f"Chat API Exception: {e}")
         return None
-def call_image_generation(master_prompt: str, reference_images: list = None):
+def remove_bg_floodfill(img):
+    """
+    Hàm gọt nền kết hợp 2 lớp:
+    1. Flood Fill: Quét sạch mảng nền lớn bên ngoài (xử lý cả viền mờ).
+    2. Numpy Mask: Đục thủng các "lỗ" màu trắng tinh (255,255,255) bị kẹt bên trong.
+    """
+    img = img.convert("RGBA")
+
+    # --- LỚP 1: Xóa mảng nền bên ngoài bằng Flood Fill ---
+    temp = img.convert("RGB")
+    magic_color = (255, 0, 255) # Màu hồng cánh sen làm mốc
+    ImageDraw.floodfill(temp, xy=(0, 0), value=magic_color, thresh=30)
+
+    # Chuyển ảnh thành mảng Numpy để xử lý tốc độ cao
+    img_array = np.array(img)
+    temp_array = np.array(temp)
+
+    # Tạo bộ lọc (mask) nhận diện những vùng bị loang màu hồng (Nền ngoài)
+    outer_bg_mask = (temp_array[:, :, 0] == 255) & (temp_array[:, :, 1] == 0) & (temp_array[:, :, 2] == 255)
+
+    # --- LỚP 2: Đục lỗ bên trong (Bắt các khoảng trắng tinh bị kẹt) ---
+    # Chỉ tìm những pixel trắng tuyệt đối (255, 255, 255) do AI tạo ra
+    pure_white_mask = (img_array[:, :, 0] >= 250) & (img_array[:, :, 1] >= 250) & (img_array[:, :, 2] >= 250)
+
+    # --- TỔNG HỢP & LÀM TRONG SUỐT ---
+    # Điểm nào thuộc nền ngoài HOẶC là lỗ trắng bên trong -> Đánh thủng (Alpha = 0)
+    img_array[outer_bg_mask | pure_white_mask, 3] = 0
+
+    return Image.fromarray(img_array)
+def call_image_generation(master_prompt: str, reference_images: list = None, is_final: bool = False):
     headers = {
         "Authorization": f"Bearer {config.XAI_API_KEY}",
         "Content-Type": "application/json",
     }
 
-    transparent_instruction = """
-    IMPORTANT TRANSPARENT RULE:
-    - Final image MUST have **pure transparent background** (alpha channel = 0).
-    - Remove ALL background patterns, grids, checkerboard, or any residual background.
-    - Main subject (pug + text) must be perfectly centered with generous transparent padding around it.
+    pod_output_instruction = """
+    CRITICAL PRINT-ON-DEMAND REQUIREMENT:
+    - The final graphic MUST be rendered on a PURE SOLID WHITE BACKGROUND.
+    - Absolutely NO gradients, NO shadows, NO environment, NO scenic elements in the background.
+    - The main subject must be perfectly isolated and centered.
     """
 
-    full_prompt = master_prompt + "\n\n" + transparent_instruction
-
-    payload = {
-        "model": config.IMAGE_MODEL,
-        "prompt": full_prompt,
-        "response_format": "url",
-    }
-
-    if reference_images and len(reference_images) > 0:
-        url = f"{config.BASE_URL}/images/edits"
-        images_list = [{"type": "image_url", "url": get_valid_image_url(img)} for img in reference_images if img]
-        if len(images_list) == 1:
-            payload["image"] = images_list[0]
-        else:
-            payload["images"] = images_list
+    if is_final:
+        sharpness_boost = "\n\n[FINAL RENDER QUALITY]: 8k resolution, ultra-detailed, highly crisp lines, vector-like sharpness, masterpiece, professional print-ready quality. Maximize details."
+        full_prompt = master_prompt + sharpness_boost + "\n\n" + pod_output_instruction
     else:
-        url = f"{config.BASE_URL}/images/generations"
-
-def call_image_generation(master_prompt: str, reference_images: list = None):
-    headers = {
-        "Authorization": f"Bearer {config.XAI_API_KEY}",
-        "Content-Type": "application/json",
-    }
-
-    transparent_instruction = """
-    CRITICAL TRANSPARENT REQUIREMENT:
-    - Pure transparent background ONLY outside the main subject.
-    - Keep ALL internal details, white areas, highlights, and light fur inside the subject intact.
-    - Do not remove bright pixels that belong to the main design.
-    - Clean edges but preserve internal colors and details.
-    """
-
-    full_prompt = master_prompt + "\n\n" + transparent_instruction
+        full_prompt = master_prompt + "\n\n" + pod_output_instruction
 
     payload = {
         "model": config.IMAGE_MODEL,
@@ -233,12 +233,14 @@ def call_image_generation(master_prompt: str, reference_images: list = None):
         "response_format": "url",
     }
 
+    # Logic xử lý reference images giữ nguyên
     if reference_images and len(reference_images) > 0:
-        url = f"{config.BASE_URL}/images/edits"
         images_list = [{"type": "image_url", "url": get_valid_image_url(img)} for img in reference_images if img]
         if len(images_list) == 1:
+            url = f"{config.BASE_URL}/images/edits"
             payload["image"] = images_list[0]
         else:
+            url = f"{config.BASE_URL}/images/generations"
             payload["images"] = images_list
     else:
         url = f"{config.BASE_URL}/images/generations"
@@ -248,68 +250,70 @@ def call_image_generation(master_prompt: str, reference_images: list = None):
         
         if response.status_code == 200:
             raw_url = response.json()["data"][0]["url"]
-            img_response = requests.get(raw_url)
-            img = Image.open(io.BytesIO(img_response.content)).convert("RGBA")
 
-            print("Đang xử lý transparent background...")
-
-            # === CHỈ XÓA NỀN TRẮNG NHẸ - KHÔNG XÓA NỀN ĐEN ===
-            datas = img.getdata()
-            new_data = []
-            
-            for r, g, b, a in datas:
-                brightness = (r * 0.299 + g * 0.587 + b * 0.114)
+            if not is_final:
+                # =================================================================
+                # PHASE 1: DRAFT PREVIEW (Tách nền bằng Flood Fill giữ nguyên chữ)
+                # =================================================================
+                print("Đã sinh ảnh từ Grok, đang tiến hành tách nền Preview...")
+                img_response = requests.get(raw_url)
+                img_raw = Image.open(io.BytesIO(img_response.content)).convert("RGBA")
                 
-                # Chỉ xóa những vùng trắng cực mạnh ở nền ngoài
-                if brightness > 248 and a > 220:      # Ngưỡng rất cao để bảo vệ chi tiết trắng bên trong
-                    new_data.append((255, 255, 255, 0))
-                elif a < 160:                         # Xóa pixel quá mờ
-                    new_data.append((255, 255, 255, 0))
-                else:
-                    new_data.append((r, g, b, a))
+                # DÙNG FLOOD FILL THAY VÌ REMBG
+                img_no_bg = remove_bg_floodfill(img_raw)
+                
+                filename = f"preview_no_bg_{int(time.time())}.png"
+                filepath = os.path.join("outputs", filename)
+                img_no_bg.save(filepath, format="PNG")
+                
+                return {"image_url": f"/outputs/{filename}", "error": None}
 
-            img.putdata(new_data)
-
-            # === CROP + PADDING ===
-            import numpy as np
-            data = np.array(img)
-            alpha = data[:, :, 3]
-            coords = np.column_stack(np.where(alpha > 65))
-            
-            if len(coords) > 0:
-                y1, x1 = coords.min(axis=0)
-                y2, x2 = coords.max(axis=0)
-                cropped = img.crop((x1, y1, x2, y2))
             else:
-                cropped = img
+                # =================================================================
+                # PHASE 2: FINAL RENDER (Tách nền + Up-scale Lanczos 4500x5400)
+                # =================================================================
+                print("Đang tiến hành tách nền và Upscale chuẩn in...")
+                img_response = requests.get(raw_url)
+                img_raw = Image.open(io.BytesIO(img_response.content)).convert("RGBA")
 
-            padding_ratio = 0.22
-            pad_w = int(cropped.width * padding_ratio)
-            pad_h = int(cropped.height * padding_ratio)
+                # CŨNG PHẢI GỌT NỀN TRƯỚC KHI UPSCALE ĐỂ BẢN IN TRONG SUỐT
+                img_no_bg = remove_bg_floodfill(img_raw)
 
-            final_w = cropped.width + 2 * pad_w
-            final_h = cropped.height + 2 * pad_h
+                target_w, target_h = 4500, 5400
+                final_img = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+                
+                max_w = int(target_w * 0.85)
+                max_h = int(target_h * 0.85)
+                
+                aspect = img_no_bg.width / img_no_bg.height
+                if aspect > (max_w / max_h):
+                    new_w = max_w
+                    new_h = int(max_w / aspect)
+                else:
+                    new_h = max_h
+                    new_w = int(max_h * aspect)
 
-            final_img = Image.new("RGBA", (final_w, final_h), (0, 0, 0, 0))
-            final_img.paste(cropped, (pad_w, pad_h), cropped)
+                # Upscale bằng thuật toán Lanczos chống vỡ hạt
+                img_resized = img_no_bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                
+                paste_x = (target_w - new_w) // 2
+                paste_y = (target_h - new_h) // 2
+                final_img.paste(img_resized, (paste_x, paste_y), img_resized)
 
-            # Resize về kích thước in áo
-            target_w, target_h = 4500, 5400
-            final_img = final_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+                filename = f"pod_design_final_{int(time.time())}.png"
+                filepath = os.path.join("outputs", filename)
+                
+                # Ép DPI = 300 chuẩn xưởng in
+                final_img.save(filepath, format="PNG", dpi=(300, 300), optimize=True)
 
-            filename = f"pod_design_{int(time.time())}.png"
-            filepath = os.path.join("outputs", filename)
-            final_img.save(filepath, format="PNG", dpi=(300, 300), optimize=True)
-
-            return {"image_url": f"/outputs/{filename}", "error": None}
+                return {"image_url": f"/outputs/{filename}", "error": None}
 
         else:
             return {"image_url": None, "error": response.text[:200]}
 
     except Exception as e:
-        print(f"Lỗi sinh ảnh: {e}")
+        print(f"Lỗi hệ thống: {e}")
         return {"image_url": None, "error": str(e)}
-
 # =====================================================================
 # 3. ROUTES & ENPOINTS (FASTAPI)
 # =====================================================================
@@ -350,7 +354,10 @@ async def chat_endpoint(request: Request):
 async def generate_image_endpoint(request: Request):
     data = await request.json()
     master_prompt = data.get("master_prompt")
-    reference_images = data.get("reference_images")   # ← Đổi thành list
+    reference_images = data.get("reference_images")   
+    
+    # LẤY THAM SỐ is_final TỪ FRONTEND (Mặc định là False nếu không có)
+    is_final = data.get("is_final", False)
 
     if not master_prompt:
         return JSONResponse(
@@ -358,7 +365,8 @@ async def generate_image_endpoint(request: Request):
             status_code=400
         )
 
-    img_res = call_image_generation(master_prompt, reference_images)
+    # TRUYỀN is_final VÀO HÀM ĐỂ KÍCH HOẠT PHASE 2
+    img_res = call_image_generation(master_prompt, reference_images, is_final)
     return JSONResponse(content=img_res)
 
 

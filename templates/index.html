@@ -1923,7 +1923,7 @@
         let referenceImages = [];
 
         if (Array.isArray(imageForNextRender)) {
-          referenceImages = [...imageForNextRender]; // Lấy cả 2 ảnh nếu là mảng
+          referenceImages = [...imageForNextRender]; 
         } else if (imageForNextRender) {
           referenceImages = [imageForNextRender];
         } else if (currentImagesBase64 && currentImagesBase64.length > 0) {
@@ -1938,7 +1938,8 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               master_prompt: masterPrompt,
-              reference_images: referenceImages, // ← Dùng list
+              reference_images: referenceImages,
+              is_final: false // Bắn cờ DRAFT (Preview) xuống backend
             }),
           });
 
@@ -1952,6 +1953,8 @@
 
             const wrapper = document.createElement("div");
             wrapper.className = "msg-wrapper ai";
+            
+            // [CẬP NHẬT GIAO DIỆN]: Thêm nút Chốt Final bên cạnh nút Retry
             wrapper.innerHTML = `
                 <div class="msg-avatar">👕</div>
                 <div style="width: 100%;">
@@ -1961,9 +1964,14 @@
                         <strong>✨ Master Prompt:</strong><br>
                         ${masterPrompt}
                     </div>
-                    <button class="btn-trigger-survey" style="margin-top: 8px; font-weight: 600;" onclick="openRetryModal()">
-                        🔄 Chọn ảnh để sửa lại (Retry)
-                    </button>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                        <button class="render-btn" style="width: 100%; background: linear-gradient(135deg, #00f5d4, #00c4a8);" onclick="triggerFinalRender(this, '${encodedPrompt}', '${data.image_url}')">
+                            ✅ Chốt ảnh này & Tạo bản in nét (Final Render)
+                        </button>
+                        <button class="btn-trigger-survey" style="width: 100%; justify-content: center; font-weight: 600; margin-top: 0;" onclick="openRetryModal()">
+                            🔄 Không ưng, chọn ảnh sửa lại (Retry)
+                        </button>
+                    </div>
                 </div>
             `;
             messagesContainer.appendChild(wrapper);
@@ -1978,6 +1986,57 @@
           hideAILoading();
           console.error(error);
           addMessage("ai", "Lỗi kết nối khi render ảnh. Thử lại nhé!");
+        }
+      }
+      // HÀM MỚI: XỬ LÝ UPSCALE VÀ RENDER BẢN CHUẨN IN
+      async function triggerFinalRender(btn, encodedPrompt, previewImageUrl) {
+        const masterPrompt = decodeURIComponent(escape(atob(encodedPrompt)));
+        
+        // Ẩn cụm nút để tránh khách bấm nhiều lần
+        btn.parentElement.style.display = "none";
+        
+        // Hiện loading với dòng Text riêng cho giai đoạn này
+        showAILoading();
+        document.getElementById("loading-sub").innerText = "ĐANG UPSIZE & TĂNG ĐỘ NÉT CHUẨN IN...";
+
+        try {
+          const res = await fetch("/generate-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              master_prompt: masterPrompt,
+              reference_images: [previewImageUrl], // Đẩy chính cái ảnh preview lên để làm gốc
+              is_final: true // KÍCH HOẠT CỜ FINAL CHO BACKEND
+            }),
+          });
+
+          const data = await res.json();
+          hideAILoading();
+
+          if (data.image_url) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "msg-wrapper ai";
+            wrapper.innerHTML = `
+                <div class="msg-avatar">👕</div>
+                <div style="width: 100%;">
+                    <div class="bubble ai" style="border-color: #ff00cc; background: rgba(255,0,204,0.05);">
+                        🎉 Xong rồi! Đây là bản Final độ nét cao (4500x5400, 300 DPI) sẵn sàng để in áo của cậu nè!
+                    </div>
+                    <img src="${data.image_url}" class="msg-image" alt="Final Generated" style="margin-bottom: 8px; border: 2px solid #ff00cc;">
+                    <a href="${data.image_url}" download="BestiePOD_Final_Design.png" class="render-btn" style="display: block; text-align: center; text-decoration: none; margin-top: 8px;">
+                        ⬇️ Tải ảnh chuẩn in về máy
+                    </a>
+                </div>
+            `;
+            messagesContainer.appendChild(wrapper);
+          } else {
+            addMessage("ai", `Ui, xưởng in báo lỗi lúc upscale rồi 🥲<br><br><div class="debug" style="color:#ff4d4d;">${data.error || "Không xác định"}</div>`);
+          }
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (error) {
+          hideAILoading();
+          console.error(error);
+          addMessage("ai", "Lỗi kết nối khi upscale ảnh. Thử lại nhé!");
         }
       }
       function openRetryModal() {
