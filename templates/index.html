@@ -981,7 +981,7 @@
 
       // --- CẬP NHẬT GIAO DIỆN TÁCH TRƯỜNG NHẬP CHỮ TRANG CUỐI ---
       function showSurveyForm() {
-        if (!currentDynamicSurvey || currentDynamicSurvey.length === 0) return;
+        if (!currentDynamicSurvey) return; // ĐÃ XÓA CHẶN MẢNG RỖNG (.length === 0)
         const triggerBtn = document.getElementById("survey-trigger-container");
         if (triggerBtn) triggerBtn.remove();
         if (document.getElementById("current-survey")) return;
@@ -992,6 +992,9 @@
         surveyImageBase64 = null;
 
         let surveyQuestionsHtml = "";
+        let totalSurveySteps = currentDynamicSurvey.length;
+
+        // Render các trang trắc nghiệm đồ họa (nếu có)
         currentDynamicSurvey.forEach((item, index) => {
           let optionsHtml = "";
           item.options.forEach((opt) => {
@@ -1008,13 +1011,12 @@
                 `;
         });
 
-        const finalSurveyStepIdx = currentDynamicSurvey.length;
-
-        // CẬP NHẬT TÁCH Ô NHẬP TÊN VÀ QUOTE
-        surveyQuestionsHtml += `
-                <div class="survey-step" id="step-survey-${finalSurveyStepIdx}">
+        // TẠO TRANG CUỐI ĐỘNG: Chỉ hiện trang Quote NẾU AI có truyền hint (Khách chưa chốt Quote)
+        if (currentSurveyCustomHint && currentSurveyCustomHint.trim() !== "null") {
+            surveyQuestionsHtml += `
+                <div class="survey-step" id="step-survey-${totalSurveySteps}">
                     <h5>Bước cuối: In thêm chữ lên thiết kế? 💬</h5>
-                    <p style="font-size:13px; color:#aaa; margin-bottom:12px;">${currentSurveyCustomHint}</p>
+                    <p style="font-size:13px; color:#aaa; margin-bottom:12px; line-height: 1.5;">${currentSurveyCustomHint}</p>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div>
                             <label style="font-size: 13px; color: #ddd; margin-bottom: 4px; display: block;">Tên muốn in (bỏ trống nếu không cần):</label>
@@ -1022,13 +1024,18 @@
                         </div>
                         <div>
                             <label style="font-size: 13px; color: #ddd; margin-bottom: 4px; display: block;">Câu Quote/Slogan (bỏ trống nếu không cần):</label>
-                            <input type="text" id="survey-custom-quote" class="survey-input" placeholder="VD: Câu chúc, Slogan ngầu lòi...">
+                            <input type="text" id="survey-custom-quote" class="survey-input" placeholder="VD: Nhập quote AI gợi ý ở trên hoặc tự chế...">
                         </div>
                     </div>
                 </div>
             `;
+            totalSurveySteps++; // Tăng tổng số trang lên 1
+        }
 
-        let stepChoiceHtml = `
+        let stepChoiceHtml = "";
+        // Bỏ qua màn hình chọn nút nếu mảng rỗng (Chỉ có bước Text)
+        if (currentDynamicSurvey.length > 0) {
+            stepChoiceHtml = `
                 <div class="survey-step active" id="step-choice">
                     <h5 style="text-align:center; margin-bottom: 16px;">Cậu muốn lên ý tưởng theo cách nào?</h5>
                     <div style="display:flex; flex-direction:column; gap:10px;">
@@ -1037,10 +1044,12 @@
                     </div>
                 </div>
             `;
+        }
 
-        if (hasUploadedImageInSession) {
-          stepChoiceHtml = "";
-          surveyMode = "survey";
+        // Tự động nhảy thẳng vào Survey nếu đã có ảnh hoặc Survey rỗng
+        if (hasUploadedImageInSession || currentDynamicSurvey.length === 0) {
+            stepChoiceHtml = "";
+            surveyMode = "survey";
         }
 
         const wrapper = document.createElement("div");
@@ -1050,12 +1059,10 @@
                 <div>
                     <div class="survey-box" id="current-survey">
                         <div class="survey-header">
-                            <h4>✨ Lên ý tưởng thiết kế</h4>
+                            <h4>✨ ${currentDynamicSurvey.length > 0 ? "Lên ý tưởng thiết kế" : "Chốt nội dung in áo"}</h4>
                             <button onclick="closeSurvey()" style="background:none; border:none; color:#666; font-size:18px; cursor:pointer;">✕</button>
                         </div>
-                        
-                        <div class="survey-dots" id="survey-dots" style="${hasUploadedImageInSession ? "display:flex;" : "display:none;"}"></div>
-
+                        <div class="survey-dots" id="survey-dots" style="display:none;"></div>
                         ${stepChoiceHtml}
                         ${surveyQuestionsHtml}
 
@@ -1070,12 +1077,10 @@
                         </div>
                         <div class="survey-step" id="step-image-1">
                             <h5>2. Chi tiết cậu muốn thêm/sửa? ✍️</h5>
-                            <p style="font-size:13px; color:#aaa; margin-bottom:12px;">Ví dụ: Đổi thành áo màu đỏ, thêm kính râm...</p>
                             <textarea id="survey-img-details" class="survey-textarea" placeholder="Nhập yêu cầu của cậu..."></textarea>
                         </div>
                         <div class="survey-step" id="step-image-2">
                             <h5>3. In thêm chữ lên thiết kế? 💬</h5>
-                            <p style="font-size:13px; color:#aaa; margin-bottom:12px;">Cậu có muốn in tên hay câu khẩu hiệu gì lên không?</p>
                             <div style="display: flex; flex-direction: column; gap: 12px;">
                                 <div>
                                     <label style="font-size: 13px; color: #ddd; margin-bottom: 4px; display: block;">Tên muốn in:</label>
@@ -1088,7 +1093,7 @@
                             </div>
                         </div>
 
-                        <div class="survey-nav" id="survey-nav" style="${hasUploadedImageInSession ? "display:flex;" : "display:none;"}">
+                        <div class="survey-nav" id="survey-nav" style="display:none;">
                             <button class="nav-btn btn-back" id="btn-back" onclick="changeSurveyStep(-1)" style="display:none;">Back</button>
                             <button class="nav-btn btn-next" id="btn-next" onclick="changeSurveyStep(1)">Next ➔</button>
                             <button class="nav-btn btn-submit" id="btn-submit" onclick="submitSurvey()" style="display:none;">Hoàn thành 🚀</button>
@@ -1099,8 +1104,8 @@
         messagesContainer.appendChild(wrapper);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-        if (hasUploadedImageInSession) {
-          for (let i = 0; i <= currentDynamicSurvey.length; i++) {
+        if (surveyMode === "survey") {
+          for (let i = 0; i < totalSurveySteps; i++) {
             currentSurveyStepsArray.push("step-survey-" + i);
           }
           let dotsHtml = "";
@@ -1108,9 +1113,12 @@
             dotsHtml += `<div class="dot ${i === 0 ? "active" : ""}" id="dot${i}"></div>`;
           }
           document.getElementById("survey-dots").innerHTML = dotsHtml;
-          document
-            .getElementById(currentSurveyStepsArray[0])
-            .classList.add("active");
+          document.getElementById("survey-dots").style.display = "flex";
+          document.getElementById("survey-nav").style.display = "flex";
+          
+          if (currentSurveyStepsArray.length > 0) {
+              document.getElementById(currentSurveyStepsArray[0]).classList.add("active");
+          }
           updateSurveyNavButtons();
         }
       }
@@ -1251,19 +1259,21 @@
         const el = document.getElementById("current-survey");
         if (el) {
           el.closest(".msg-wrapper").remove();
-          if (
-            !surveyCompleted &&
-            currentDynamicSurvey &&
-            currentDynamicSurvey.length > 0
-          ) {
+          // ĐÃ XÓA ĐIỀU KIỆN .length > 0
+          if (!surveyCompleted && currentDynamicSurvey !== null) {
             const triggerWrapper = document.createElement("div");
             triggerWrapper.id = "survey-trigger-container";
             triggerWrapper.className = "msg-wrapper ai";
+            
+            let triggerText = currentDynamicSurvey.length > 0 
+                ? "📝 Cậu có thể gõ tiếp, hoặc nhấp vào đây để cấu hình đồ họa!"
+                : "💬 Nhấp vào đây để xem gợi ý và chốt nội dung in chữ nha!";
+                
             triggerWrapper.innerHTML = `
                         <div class="msg-avatar"></div>
                         <div>
                             <button class="btn-trigger-survey" onclick="showSurveyForm()">
-                                📝 Cậu có thể gõ tiếp, hoặc nhấp vào đây để cấu hình nhanh!
+                                ${triggerText}
                             </button>
                         </div>
                     `;
@@ -1595,8 +1605,8 @@
           );
           const dynamicSurveyData = data.suggested_survey || null;
 
-          if (data.survey_custom_hint) {
-            currentSurveyCustomHint = data.survey_custom_hint;
+          if (data.survey_custom_hint !== undefined) {
+            currentSurveyCustomHint = data.survey_custom_hint; 
           } else {
             currentSurveyCustomHint =
               "Cậu có muốn in thêm tên hay khẩu hiệu gì lên áo không? (Bỏ trống nếu không cần)";
@@ -1617,21 +1627,24 @@
                     `;
             messagesContainer.appendChild(btnWrapper);
           } else {
-            if (
-              !surveyCompleted &&
-              dynamicSurveyData &&
-              dynamicSurveyData.length > 0
-            ) {
+            // ĐÃ BỎ ĐIỀU KIỆN .length > 0 ĐỂ CHẤP NHẬN MẢNG RỖNG KHI CHỈ HỎI TEXT
+            if (!surveyCompleted && dynamicSurveyData !== null) {
               currentDynamicSurvey = dynamicSurveyData;
 
               const triggerWrapper = document.createElement("div");
               triggerWrapper.id = "survey-trigger-container";
               triggerWrapper.className = "msg-wrapper ai";
+              
+              // Đổi text linh hoạt tùy theo việc có form trắc nghiệm hay không
+              let triggerText = currentDynamicSurvey.length > 0 
+                  ? "📝 Cậu có thể gõ tiếp, hoặc nhấp vào đây để cấu hình đồ họa!"
+                  : "💬 Nhấp vào đây để xem gợi ý và chốt nội dung in chữ nha!";
+                  
               triggerWrapper.innerHTML = `
                             <div class="msg-avatar"></div>
                             <div>
                                 <button class="btn-trigger-survey" onclick="showSurveyForm()">
-                                    📝 Cậu có thể gõ tiếp, hoặc nhấp vào đây để cấu hình nhanh!
+                                    ${triggerText}
                                 </button>
                             </div>
                         `;

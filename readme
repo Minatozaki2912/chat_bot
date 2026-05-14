@@ -83,7 +83,7 @@ python main.py
 Cách 2 (Chạy bằng lệnh Uvicorn - Khuyên dùng khi đang code):
 
 Bash
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 (Lệnh này có cờ --reload sẽ giúp server tự động khởi động lại mỗi khi cậu chỉnh sửa và lưu code, cực kỳ tiện lợi).
 
 Bước 4: Trải nghiệm thành quả
