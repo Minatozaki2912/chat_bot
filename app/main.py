@@ -149,7 +149,7 @@ def call_conversation_api(
         "model": config.CONVERSATION_MODEL,
         "messages": messages,
         "previous_response_id": prev_id,
-        "temperature": config.TEMPERATURE,
+        "temperature": config.CHAT_TEMPERATURE,
         "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -159,7 +159,7 @@ def call_conversation_api(
             },
         },
         "store": config.STORE_CONTEXT,
-        "reasoning": {"effort": config.REASONING_EFFORT}   # ← Thêm dòng này
+        "reasoning": {"effort": config.REASONING_EFFORT}
     }
 
     try:
@@ -231,6 +231,7 @@ def call_image_generation(master_prompt: str, reference_images: list = None, is_
         "model": config.IMAGE_MODEL,
         "prompt": full_prompt,
         "response_format": "url",
+        "temperature": config.IMAGE_TEMPERATURE
     }
 
     # Logic xử lý reference images giữ nguyên
