@@ -981,7 +981,7 @@
 
       // --- CẬP NHẬT GIAO DIỆN TÁCH TRƯỜNG NHẬP CHỮ TRANG CUỐI ---
       function showSurveyForm() {
-        if (!currentDynamicSurvey) return; // ĐÃ XÓA CHẶN MẢNG RỖNG (.length === 0)
+        if (!currentDynamicSurvey) return; 
         const triggerBtn = document.getElementById("survey-trigger-container");
         if (triggerBtn) triggerBtn.remove();
         if (document.getElementById("current-survey")) return;
@@ -993,6 +993,9 @@
 
         let surveyQuestionsHtml = "";
         let totalSurveySteps = currentDynamicSurvey.length;
+
+        // [SỬA LỖI Ở ĐÂY]: Khai báo biến quyết định ẩn/hiện trang chữ (Có bọc String để chống lỗi null)
+        const showTextStep = currentSurveyCustomHint && String(currentSurveyCustomHint).trim() !== "null";
 
         // Render các trang trắc nghiệm đồ họa (nếu có)
         currentDynamicSurvey.forEach((item, index) => {
@@ -1011,25 +1014,21 @@
                 `;
         });
 
-        // TẠO TRANG CUỐI ĐỘNG: Chỉ hiện trang Quote NẾU AI có truyền hint (Khách chưa chốt Quote)
-        if (currentSurveyCustomHint && currentSurveyCustomHint.trim() !== "null") {
+        // TẠO TRANG CUỐI ĐỘNG: Chỉ hiện trang Quote NẾU showTextStep là true
+        if (showTextStep) {
             surveyQuestionsHtml += `
                 <div class="survey-step" id="step-survey-${totalSurveySteps}">
                     <h5>Bước cuối: In thêm chữ lên thiết kế? 💬</h5>
-                    <p style="font-size:13px; color:#aaa; margin-bottom:12px; line-height: 1.5;">${currentSurveyCustomHint}</p>
+                    <p style="font-size:14px; color:#ddd; margin-bottom:12px; line-height: 1.6; background: rgba(0,245,212,0.05); padding: 12px; border-radius: 12px; border: 1px dashed rgba(0,245,212,0.3); white-space: pre-line;">${currentSurveyCustomHint}</p>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                         <div>
-                            <label style="font-size: 13px; color: #ddd; margin-bottom: 4px; display: block;">Tên muốn in (bỏ trống nếu không cần):</label>
-                            <input type="text" id="survey-custom-name" class="survey-input" placeholder="VD: Tên của cậu, tên người nhận...">
-                        </div>
-                        <div>
-                            <label style="font-size: 13px; color: #ddd; margin-bottom: 4px; display: block;">Câu Quote/Slogan (bỏ trống nếu không cần):</label>
-                            <input type="text" id="survey-custom-quote" class="survey-input" placeholder="VD: Nhập quote AI gợi ý ở trên hoặc tự chế...">
+                            <label style="font-size: 13px; color: #ddd; margin-bottom: 6px; display: block;">Câu Quote/Slogan (bỏ trống nếu không cần):</label>
+                            <input type="text" id="survey-custom-quote" class="survey-input" placeholder="VD: Nhập quote AI gợi ý ở trên (hoặc tự thay tên bạn vào)...">
                         </div>
                     </div>
                 </div>
             `;
-            totalSurveySteps++; // Tăng tổng số trang lên 1
+            totalSurveySteps++; 
         }
 
         let stepChoiceHtml = "";
@@ -1079,19 +1078,18 @@
                             <h5>2. Chi tiết cậu muốn thêm/sửa? ✍️</h5>
                             <textarea id="survey-img-details" class="survey-textarea" placeholder="Nhập yêu cầu của cậu..."></textarea>
                         </div>
+                        ${showTextStep ? `
                         <div class="survey-step" id="step-image-2">
                             <h5>3. In thêm chữ lên thiết kế? 💬</h5>
+                            <p style="font-size:14px; color:#ddd; margin-bottom:12px; line-height: 1.6; background: rgba(0,245,212,0.05); padding: 12px; border-radius: 12px; border: 1px dashed rgba(0,245,212,0.3); white-space: pre-line;">${currentSurveyCustomHint}</p>
                             <div style="display: flex; flex-direction: column; gap: 12px;">
                                 <div>
-                                    <label style="font-size: 13px; color: #ddd; margin-bottom: 4px; display: block;">Tên muốn in:</label>
-                                    <input type="text" id="survey-img-name" class="survey-input" placeholder="VD: Tên của cậu, tên người nhận...">
-                                </div>
-                                <div>
-                                    <label style="font-size: 13px; color: #ddd; margin-bottom: 4px; display: block;">Câu Quote/Slogan:</label>
-                                    <input type="text" id="survey-img-quote" class="survey-input" placeholder="VD: Câu chúc, Slogan ngầu lòi...">
+                                    <label style="font-size: 13px; color: #ddd; margin-bottom: 6px; display: block;">Câu Quote/Slogan (bỏ trống nếu không cần):</label>
+                                    <input type="text" id="survey-img-quote" class="survey-input" placeholder="VD: Nhập quote AI gợi ý ở trên (hoặc tự thay tên bạn vào)...">
                                 </div>
                             </div>
                         </div>
+                        ` : ''}
 
                         <div class="survey-nav" id="survey-nav" style="display:none;">
                             <button class="nav-btn btn-back" id="btn-back" onclick="changeSurveyStep(-1)" style="display:none;">Back</button>
@@ -1143,16 +1141,21 @@
         currentSurveyStepIdx = 0;
         currentSurveyStepsArray = [];
 
+        // [SỬA LỖI Ở ĐÂY]: Dùng String() để bảo vệ khỏi lỗi crash
+        const showTextStep = currentSurveyCustomHint && String(currentSurveyCustomHint).trim() !== "null";
+
         if (mode === "survey") {
-          for (let i = 0; i <= currentDynamicSurvey.length; i++) {
+          // Nhánh Trắc nghiệm
+          const totalSteps = currentDynamicSurvey.length + (showTextStep ? 1 : 0);
+          for (let i = 0; i < totalSteps; i++) {
             currentSurveyStepsArray.push("step-survey-" + i);
           }
         } else {
-          currentSurveyStepsArray = [
-            "step-image-0",
-            "step-image-1",
-            "step-image-2",
-          ];
+          // Nhánh Tải ảnh
+          currentSurveyStepsArray = ["step-image-0", "step-image-1"];
+          if (showTextStep) {
+              currentSurveyStepsArray.push("step-image-2");
+          }
         }
 
         let dotsHtml = "";
@@ -1294,46 +1297,36 @@
             const radios = document.getElementsByName(`surveyQ${index}`);
             radios.forEach((r) => {
               if (r.checked)
-                selected =
-                  r.value === "other"
-                    ? document
-                        .getElementById(`surveyQ${index}-other`)
-                        .value.trim()
-                    : r.value;
+                selected = r.value === "other" ? document.getElementById(`surveyQ${index}-other`).value.trim() : r.value;
             });
             if (!selected) selected = "Không có";
             finalMessage += `- ${q.question}: ${selected}\n`;
           });
 
-          const customName = document
-            .getElementById("survey-custom-name")
-            .value.trim();
-          const customQuote = document
-            .getElementById("survey-custom-quote")
-            .value.trim();
-          let textOptions = [];
-          if (customName) textOptions.push(`Tên: ${customName}`);
-          if (customQuote) textOptions.push(`Quote: ${customQuote}`);
+          // Chỉ lấy Quote
+          const quoteEl = document.getElementById("survey-custom-quote");
+          const customQuote = quoteEl ? quoteEl.value.trim() : "";
 
-          finalMessage += `- Tên hoặc Quote in thêm: ${textOptions.length > 0 ? textOptions.join(" | ") : "Không có"}\nCậu render ảnh cho mình nhé!`;
+          if (customQuote) {
+              finalMessage += `- Quote in thêm: ${customQuote}\n`;
+          } else {
+              finalMessage += `- Quote in thêm: Không có\n`;
+          }
+          finalMessage += "Cậu render ảnh cho mình nhé!";
+          
         } else if (surveyMode === "image") {
           finalMessage = "Mình muốn gửi ảnh mẫu đính kèm để làm gốc nha.\n";
-          const details = document
-            .getElementById("survey-img-details")
-            .value.trim();
-          const customName = document
-            .getElementById("survey-img-name")
-            .value.trim();
-          const customQuote = document
-            .getElementById("survey-img-quote")
-            .value.trim();
+          
+          const detailsEl = document.getElementById("survey-img-details");
+          const customQuoteEl = document.getElementById("survey-img-quote");
+
+          const details = detailsEl ? detailsEl.value.trim() : "";
+          const customQuote = customQuoteEl ? customQuoteEl.value.trim() : "";
 
           if (details) finalMessage += `- Chi tiết muốn thêm/sửa: ${details}\n`;
-          if (customName) finalMessage += `- Tên in trên áo: "${customName}"\n`;
-          if (customQuote)
-            finalMessage += `- Câu Quote/Slogan: "${customQuote}"\n`;
-          finalMessage +=
-            "Cậu bám theo ảnh và yêu cầu để render cho chuẩn nhé!";
+          if (customQuote) finalMessage += `- Câu Quote/Slogan in thêm: "${customQuote}"\n`;
+          
+          finalMessage += "Cậu bám theo ảnh và yêu cầu để render cho chuẩn nhé!";
 
           if (surveyImageBase64) {
             currentImagesBase64.push(surveyImageBase64);
@@ -1453,25 +1446,51 @@
         }); // <-- ĐÓNG VÒNG LẶP TẠI ĐÂY ĐỂ TRÁNH SPAM NÚT
 
         // KHỐI RENDER QUICK REPLIES (DẠNG LINK INLINE BÊN TRONG BUBBLE)
+        // KHỐI RENDER QUICK REPLIES (NÚT SHORT TEXT NHƯNG TRUYỀN FULL TEXT VÀ CÓ MÀU SẮC ĐỘNG)
         if (quickReplies && quickReplies.length > 0) {
-          // Tìm bong bóng chat cuối cùng của AI vừa được render
           const lastWrapper = messagesContainer.lastElementChild;
           if (lastWrapper && lastWrapper.classList.contains("ai")) {
             const lastBubble = lastWrapper.querySelector(".bubble.ai");
             if (lastBubble) {
-              let linksHtml =
-                '<div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);">';
+              let linksHtml = '<div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);">';
               linksHtml += quickReplies
                 .map((reply) => {
-                  const safeText = reply
-                    .replace(/'/g, "\\'")
-                    .replace(/"/g, "&quot;");
-                  return `<a class="inline-reply-link" onclick="sendQuickReply(this, '${safeText}')">➥ "${reply}"</a><br>`;
+                  let displayText = "";
+                  let actionText = "";
+                  let color = "#00f5d4"; // Màu mặc định nếu lỗi hoặc thiếu thông tin
+                  
+                  // Đọc chuẩn cấu trúc Object động mới
+                  if (typeof reply === "object" && reply !== null) {
+                      if (reply.short_label && reply.full_text) {
+                          displayText = reply.short_label; // Text ngắn kèm icon hiện trên nút
+                          actionText = reply.full_text;     // Full text chi tiết gửi lên AI
+                          color = reply.color || "#00f5d4"; // Màu sắc viền theo vibe
+                      } else if (reply.text) {
+                          displayText = reply.text;
+                          actionText = reply.text;
+                          color = reply.color || "#00f5d4";
+                      }
+                  } else {
+                      displayText = reply;
+                      actionText = reply;
+                  }
+                  
+                  // Mã hóa ký tự nháy đơn/nháy kép để tránh vỡ HTML khi truyền qua onclick
+                  const safeActionText = actionText.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                  
+                  // Trả về thiết kế nút Pill bo tròn đổi màu linh hoạt, hover sáng nhẹ 10% nền (color + '1A')
+                  return `
+                    <button class="inline-reply-btn" 
+                            style="display: block; width: 100%; text-align: left; background: transparent; border: 1px solid ${color}; color: ${color}; border-radius: 20px; padding: 12px 16px; margin-top: 8px; cursor: pointer; font-size: 14px; font-weight: 500; line-height: 1.4; transition: all 0.3s;" 
+                            onmouseover="this.style.backgroundColor='${color}1A'; this.style.transform='translateY(-2px)'" 
+                            onmouseout="this.style.backgroundColor='transparent'; this.style.transform='translateY(0)'" 
+                            onclick="sendQuickReply(this, '${safeActionText}')">
+                        ${displayText}
+                    </button>`;
                 })
                 .join("");
               linksHtml += "</div>";
 
-              // Nhúng thẳng link vào bên trong văn bản của AI
               lastBubble.innerHTML += linksHtml;
               messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
@@ -1479,13 +1498,15 @@
         }
       }
       function sendQuickReply(el, text) {
-        // Vô hiệu hóa tất cả các link hiện tại để tránh bấm đúp
-        const existingLinks = document.querySelectorAll(".inline-reply-link");
+        // Vô hiệu hóa và làm mờ tất cả các nút/link gợi ý hiện có trên màn hình
+        const existingLinks = document.querySelectorAll(".inline-reply-link, .inline-reply-btn");
         existingLinks.forEach((link) => {
           link.classList.add("disabled");
+          link.style.opacity = "0.4"; 
+          link.style.pointerEvents = "none"; 
         });
 
-        // Gán text vào ô chat và gửi đi tự động
+        // Nạp full_text chi tiết vào ô input ẩn và tự động kích hoạt gửi lệnh
         msgInput.value = text;
         sendMessage();
       }
