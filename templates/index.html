@@ -1967,15 +1967,16 @@
         }
 
         try {
-          const res = await fetch("/generate-image", {
+        const res = await fetch("/generate-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              master_prompt: masterPrompt,
-              reference_images: referenceImages,
-              is_final: false // Bắn cờ DRAFT (Preview) xuống backend
+                master_prompt: masterPrompt,
+                reference_images: referenceImages,
+                is_final: false,
+                is_retry: false   // Rõ ràng
             }),
-          });
+        });
 
           const data = await res.json();
           hideAILoading();
@@ -2139,61 +2140,92 @@
       }
 
       function submitRetry(actionType = "edit") {
-        const text = document.getElementById("retry-input").value.trim();
+    const text = document.getElementById("retry-input").value.trim();
 
-        // Bắt lỗi nếu chọn nút Edit mà chưa chọn ảnh hoặc chưa nhập ghi chú
-        if (actionType === "edit") {
-          if (selectedRetryIndex === -1) {
+    if (actionType === "edit") {
+        if (selectedRetryIndex === -1) {
             alert("Vui lòng chọn một ảnh AI bên trên để sửa!");
             return;
-          }
-          if (!text) {
+        }
+        if (!text) {
             alert("Vui lòng nhập yêu cầu sửa đổi!");
             return;
-          }
         }
+    }
 
-        let selectedItem = null;
-        if (selectedRetryIndex !== -1) {
-          selectedItem = sessionGallery[selectedRetryIndex];
-        }
+    let selectedItem = null;
+    if (selectedRetryIndex !== -1) {
+        selectedItem = sessionGallery[selectedRetryIndex];
+    }
 
-        closeRetryModal();
+    closeRetryModal();
 
-        let finalMessage = "";
-        currentImagesBase64 = [];
-        lastGeneratedImageUrl = null;
-        imageForNextRender = null;
+    if (actionType === "edit" && selectedItem) {
+        // === SỬA TRỰC TIẾP BẰNG GROK IMAGINE ===
+        showAILoading();
 
-        if (actionType === "edit") {
-          // HÀNH ĐỘNG 1: Sửa chi tiết trên chính bức ảnh AI đã chọn
-          finalMessage = `I want to EDIT DETAILS of the selected image (keep original layout/style). Request: ${text}`;
+        const editPrompt = `Edit this image according to the request: ${text}. Keep the same style, composition and quality.`;
 
-          // Lấy ảnh AI đã chọn làm ảnh tham chiếu (Image-to-Image)
-          lastGeneratedImageUrl = selectedItem.src;
-          imageForNextRender = selectedItem.src;
-        } else if (actionType === "regenerate") {
-          // HÀNH ĐỘNG 2: Bỏ qua ảnh AI, vẽ lại hoàn toàn mới dựa trên ảnh gốc của khách
-          finalMessage = `I want to REGENERATE the design based on my ORIGINAL uploaded image and initial idea. Ignore the AI image we just made. Please apply these new requests: ${text ? text : "Try a different style or layout!"}`;
+        fetch("/generate-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                master_prompt: editPrompt,
+                reference_images: [selectedItem.src],
+                is_final: false,
+                is_retry: true          // ← Flag quan trọng
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            hideAILoading();
+            if (data.image_url) {
+                lastGeneratedImageUrl = data.image_url;
+                sessionGallery.push({ src: data.image_url, type: "generated" });
 
-          // Khôi phục lại ảnh gốc do user upload từ bộ nhớ (nếu có)
-          const originalImages = sessionGallery.filter(
-            (item) => item.type === "original",
-          );
-          if (originalImages.length > 0) {
-            // Lấy ảnh gốc gần nhất khách đã gửi
-            const origImg = originalImages[originalImages.length - 1].src;
-            currentImagesBase64.push(origImg); // Gửi kèm base64 để Backend đọc
-            imageForNextRender = origImg;
-          }
-          // Đảm bảo xóa sạch liên kết với ảnh AI hiện tại
-          lastGeneratedImageUrl = null;
+                const wrapper = document.createElement("div");
+                wrapper.className = "msg-wrapper ai";
+                wrapper.innerHTML = `
+                    <div class="msg-avatar">👕</div>
+                    <div style="width: 100%;">
+                        <div class="bubble ai">Đã sửa theo yêu cầu của cậu rồi nè! 👍</div>
+                        <img src="${data.image_url}" class="msg-image" alt="Edited Image" style="margin-bottom: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+                            <button class="render-btn" style="width: 100%; background: linear-gradient(135deg, #00f5d4, #00c4a8);" onclick="triggerFinalRender(this, '${btoa(unescape(encodeURIComponent(editPrompt)))}', '${data.image_url}')">
+                                ✅ Chốt ảnh này & Tạo bản in nét
+                            </button>
+                            <button class="btn-trigger-survey" style="width: 100%; justify-content: center;" onclick="openRetryModal()">
+                                🔄 Sửa tiếp
+                            </button>
+                        </div>
+                    </div>
+                `;
+                messagesContainer.appendChild(wrapper);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } else {
+                addMessage("ai", `Lỗi khi sửa ảnh: ${data.error || "Không xác định"}`);
+            }
+        })
+        .catch(err => {
+            hideAILoading();
+            console.error(err);
+            addMessage("ai", "Lỗi kết nối khi retry.");
+        });
+
+    } else if (actionType === "regenerate") {
+        // Tạo lại từ ảnh gốc (giữ logic cũ)
+        let finalMessage = `I want to REGENERATE the design based on my ORIGINAL uploaded image. New request: ${text || "Try different style"}`;
+        
+        const originalImages = sessionGallery.filter(item => item.type === "original");
+        if (originalImages.length > 0) {
+            currentImagesBase64 = [originalImages[originalImages.length - 1].src];
+            imageForNextRender = currentImagesBase64[0];
         }
 
         msgInput.value = finalMessage;
-        msgInput.style.height = "auto";
         sendMessage();
-      }
+    }
+}
 
       async function clearChat() {
         if (confirm("Xóa hết cuộc trò chuyện và bắt đầu ý tưởng mới?")) {

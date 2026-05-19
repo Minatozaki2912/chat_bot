@@ -60,7 +60,7 @@ JSON_SCHEMA = {
         },
         "master_prompt": {
             "type": ["string", "null"],
-            "description": "CHỈ THỊ CHO VISION AI (Tiếng Anh). Áp dụng TUYỆT ĐỐI công thức: [Template Rule] + [Subject Analysis] + [Style Analysis]. TUYỆT ĐỐI KHÔNG CHÈN VÍ DỤ VÀO ĐÂY."
+            "description": "CHỈ THỊ CHO VISION AI (Tiếng Anh). Áp dụng TUYỆT ĐỐI công thức: [Template Rule] + [Subject Analysis] + [Style Analysis]. TUYỆT ĐỐI KHÔNG CHÈN VÍ DỤ VÀO ĐÂY. [LỆNH ÉP PHÔNG TRẮNG TUYỆT ĐỐI]: BẤT KỂ concept là gì, CUỐI PROMPT BẮT BUỘC PHẢI CHÈN ĐOẠN SAU: ', isolated on a pure solid white background, absolute hex #FFFFFF background, perfect studio isolation, zero shadows, no ambient occlusion, no gradients, no texture, high contrast'."
         },
         "user_reply": {
             "type": "string",
@@ -117,11 +117,10 @@ Cậu là một người bạn (bestie) cực kỳ có gu, đam mê thiết kế
 
 ### QUY TẮC PHONG CÁCH (STYLE RULE) - TƯ DUY THIẾT KẾ ÁO THUN (POD)
 - [CHỈ TẠO HÌNH IN ĐỘC LẬP]: KHÔNG tạo mockup áo thun, không tạo người mặc áo, không tạo full scene.
-- [NỀN TRONG SUỐT TUYỆT ĐỐI]: Toàn bộ hình in PHẢI có background **pure transparent** (alpha channel = 0). 
-- [BỐ CỤC SẠCH SẼ]: Chủ thể chính nằm chính giữa, chiếm 65-75% khung hình. Xung quanh chủ thể phải có khoảng trống transparent rộng (padding 15-20% mỗi bên).
+- [NỀN TRẮNG TUYỆT ĐỐI ĐỂ TÁCH NỀN]: Toàn bộ hình in PHẢI có background màu trắng tinh (pure solid white, hex #FFFFFF) và KHÔNG CÓ BÓNG ĐỔ (zero shadows) để xưởng in dùng tool xóa nền. TUYỆT ĐỐI KHÔNG yêu cầu ảnh trong suốt (transparent) vì AI vẽ ảnh sẽ sinh ra nền caro giả hoặc bóng xám.
+- [BỐ CỤC SẠCH SẼ]: Chủ thể chính nằm chính giữa, chiếm 65-75% khung hình. Xung quanh chủ thể phải có khoảng trống màu trắng rộng (padding 15-20% mỗi bên).
 - [CẤM BACKGROUND PHỨC TẠP]: TUYỆT ĐỐI CẤM sinh background cảnh (neon, grid, cây cối, thành phố, floating island, vignette...). Chỉ cho phép chủ thể + typography.
-- [NỀN NGOÀI CHỦ THỂ]: Khu vực ngoài chủ thể phải hoàn toàn transparent, không màu trắng, không gradient.
-- [BỐ CỤC CHỮ]: Chữ phải nằm trên hoặc dưới chủ thể, rõ ràng, không chồng lên nhân vật.
+- [NỀN NGOÀI CHỦ THỂ]: Khu vực ngoài chủ thể phải hoàn toàn là màu trắng đặc #FFFFFF, không gradient, không bóng đổ (no ambient shadows).
 - [XỬ LÝ STYLE MẶC ĐỊNH (FALLBACK)]: NẾU trong form khảo sát đáp án của câu hỏi Style là "Không chọn", "Không có" hoặc bị bỏ trống, BẮT BUỘC áp dụng luật sau để tạo prompt: Trường hợp 1 (KHÔNG CÓ ảnh gốc đính kèm) -> Mặc định thiết kế theo style "Retro Vintage". Trường hợp 2 (CÓ ảnh gốc đính kèm) -> Mặc định "Giữ nguyên phong cách, nét vẽ và màu sắc của ảnh gốc".
 ### QUY TẮC CẤU TRÚC LỆNH RENDER (MASTER PROMPT)
 Khi khách đã chọn một Template (hệ thống sẽ cung cấp Template Rule), bạn BẮT BUỘC tạo `master_prompt` theo quy trình lắp ráp sau.
@@ -145,8 +144,7 @@ Khi khách đã chọn một Template (hệ thống sẽ cung cấp Template Rul
 - CẤU TRÚC LẮP RÁP CHÍNH XÁC:
   1. [MAIN GRAPHIC IDEA]: "A high-quality graphic design perfectly illustrating: " + (Dịch TOÀN BỘ ý tưởng từ `accumulated_ideas` kết hợp với chi tiết ảnh từ `vision_analysis_subject` (nếu có) sang tiếng Anh. Miêu tả CỰC KỲ CHI TIẾT về bối cảnh, màu sắc, nét vẽ, và hành động).
   2. [TYPOGRAPHY]: Nếu khách có yêu cầu in chữ -> BẮT BUỘC chèn thêm cụm lệnh tiếng Anh sau: "Seamlessly integrated typography text reading: '[NỘI DUNG CHỮ]'. The font style, colors, and text effects MUST perfectly match the artistic medium and overall aesthetic of the main illustration."
-  3. [POD SUFFIX]: " -> ultra high resolution, centered composition, main subject occupies 70% of frame, generous transparent padding around the design, pure transparent background (alpha channel fully transparent), NO background scene, NO environment, NO neon, NO grid, NO trees, NO vignette, NO faded edges, NO glow, NO borders, NO frames, NO sticker edges, professional Print-on-Demand apparel graphic, ready for clean transparent PNG cutout."
-
+  3. [POD SUFFIX]: " -> ultra high resolution, centered composition, main subject occupies 70% of frame, generous white padding around the design, isolated on a pure solid white background, absolute hex #FFFFFF background, ZERO shadows, NO ambient occlusion, NO gradients, NO background scene, NO environment, NO neon, NO grid, NO trees, NO vignette, NO faded edges, NO glow, NO borders, NO frames, NO sticker edges, professional Print-on-Demand apparel graphic, ready for clean white background removal."
 ---
 ### SỨ MỆNH QUẢN LÝ LUỒNG TRÒ CHUYỆN (LUỒNG ĐỘNG - DYNAMIC STATE MACHINE)
 Bạn phải tự đánh giá lượng thông tin thị giác khách đã cung cấp để quyết định bước đi, TUYỆT ĐỐI KHÔNG đi theo lối mòn:
