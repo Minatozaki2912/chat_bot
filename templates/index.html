@@ -947,6 +947,7 @@
       let selectedTemplateId = null;
       let templateImage1 = null; // Ảnh chủ thể
       let templateImage2 = null; // Ảnh Style
+      let templateImage3 = null;
       let currentImagesBase64 = [];
       let surveyCompleted = false;
 
@@ -981,7 +982,7 @@
 
       // --- CẬP NHẬT GIAO DIỆN TÁCH TRƯỜNG NHẬP CHỮ TRANG CUỐI ---
       function showSurveyForm() {
-        if (!currentDynamicSurvey) return; 
+        if (!currentDynamicSurvey) return;
         const triggerBtn = document.getElementById("survey-trigger-container");
         if (triggerBtn) triggerBtn.remove();
         if (document.getElementById("current-survey")) return;
@@ -995,7 +996,9 @@
         let totalSurveySteps = currentDynamicSurvey.length;
 
         // [SỬA LỖI Ở ĐÂY]: Khai báo biến quyết định ẩn/hiện trang chữ (Có bọc String để chống lỗi null)
-        const showTextStep = currentSurveyCustomHint && String(currentSurveyCustomHint).trim() !== "null";
+        const showTextStep =
+          currentSurveyCustomHint &&
+          String(currentSurveyCustomHint).trim() !== "null";
 
         // Render các trang trắc nghiệm đồ họa (nếu có)
         currentDynamicSurvey.forEach((item, index) => {
@@ -1016,7 +1019,7 @@
 
         // TẠO TRANG CUỐI ĐỘNG: Chỉ hiện trang Quote NẾU showTextStep là true
         if (showTextStep) {
-            surveyQuestionsHtml += `
+          surveyQuestionsHtml += `
                 <div class="survey-step" id="step-survey-${totalSurveySteps}">
                     <h5>Bước cuối: In thêm chữ lên thiết kế? 💬</h5>
                     <p style="font-size:14px; color:#ddd; margin-bottom:12px; line-height: 1.6; background: rgba(0,245,212,0.05); padding: 12px; border-radius: 12px; border: 1px dashed rgba(0,245,212,0.3); white-space: pre-line;">${currentSurveyCustomHint}</p>
@@ -1028,13 +1031,13 @@
                     </div>
                 </div>
             `;
-            totalSurveySteps++; 
+          totalSurveySteps++;
         }
 
         let stepChoiceHtml = "";
         // Bỏ qua màn hình chọn nút nếu mảng rỗng (Chỉ có bước Text)
         if (currentDynamicSurvey.length > 0) {
-            stepChoiceHtml = `
+          stepChoiceHtml = `
                 <div class="survey-step active" id="step-choice">
                     <h5 style="text-align:center; margin-bottom: 16px;">Cậu muốn lên ý tưởng theo cách nào?</h5>
                     <div style="display:flex; flex-direction:column; gap:10px;">
@@ -1047,8 +1050,8 @@
 
         // Tự động nhảy thẳng vào Survey nếu đã có ảnh hoặc Survey rỗng
         if (hasUploadedImageInSession || currentDynamicSurvey.length === 0) {
-            stepChoiceHtml = "";
-            surveyMode = "survey";
+          stepChoiceHtml = "";
+          surveyMode = "survey";
         }
 
         const wrapper = document.createElement("div");
@@ -1078,7 +1081,9 @@
                             <h5>2. Chi tiết cậu muốn thêm/sửa? ✍️</h5>
                             <textarea id="survey-img-details" class="survey-textarea" placeholder="Nhập yêu cầu của cậu..."></textarea>
                         </div>
-                        ${showTextStep ? `
+                        ${
+                          showTextStep
+                            ? `
                         <div class="survey-step" id="step-image-2">
                             <h5>3. In thêm chữ lên thiết kế? 💬</h5>
                             <p style="font-size:14px; color:#ddd; margin-bottom:12px; line-height: 1.6; background: rgba(0,245,212,0.05); padding: 12px; border-radius: 12px; border: 1px dashed rgba(0,245,212,0.3); white-space: pre-line;">${currentSurveyCustomHint}</p>
@@ -1089,7 +1094,9 @@
                                 </div>
                             </div>
                         </div>
-                        ` : ''}
+                        `
+                            : ""
+                        }
 
                         <div class="survey-nav" id="survey-nav" style="display:none;">
                             <button class="nav-btn btn-back" id="btn-back" onclick="changeSurveyStep(-1)" style="display:none;">Back</button>
@@ -1113,9 +1120,11 @@
           document.getElementById("survey-dots").innerHTML = dotsHtml;
           document.getElementById("survey-dots").style.display = "flex";
           document.getElementById("survey-nav").style.display = "flex";
-          
+
           if (currentSurveyStepsArray.length > 0) {
-              document.getElementById(currentSurveyStepsArray[0]).classList.add("active");
+            document
+              .getElementById(currentSurveyStepsArray[0])
+              .classList.add("active");
           }
           updateSurveyNavButtons();
         }
@@ -1142,11 +1151,14 @@
         currentSurveyStepsArray = [];
 
         // [SỬA LỖI Ở ĐÂY]: Dùng String() để bảo vệ khỏi lỗi crash
-        const showTextStep = currentSurveyCustomHint && String(currentSurveyCustomHint).trim() !== "null";
+        const showTextStep =
+          currentSurveyCustomHint &&
+          String(currentSurveyCustomHint).trim() !== "null";
 
         if (mode === "survey") {
           // Nhánh Trắc nghiệm
-          const totalSteps = currentDynamicSurvey.length + (showTextStep ? 1 : 0);
+          const totalSteps =
+            currentDynamicSurvey.length + (showTextStep ? 1 : 0);
           for (let i = 0; i < totalSteps; i++) {
             currentSurveyStepsArray.push("step-survey-" + i);
           }
@@ -1154,7 +1166,7 @@
           // Nhánh Tải ảnh
           currentSurveyStepsArray = ["step-image-0", "step-image-1"];
           if (showTextStep) {
-              currentSurveyStepsArray.push("step-image-2");
+            currentSurveyStepsArray.push("step-image-2");
           }
         }
 
@@ -1267,11 +1279,12 @@
             const triggerWrapper = document.createElement("div");
             triggerWrapper.id = "survey-trigger-container";
             triggerWrapper.className = "msg-wrapper ai";
-            
-            let triggerText = currentDynamicSurvey.length > 0 
+
+            let triggerText =
+              currentDynamicSurvey.length > 0
                 ? "📝 Cậu có thể gõ tiếp, hoặc nhấp vào đây để cấu hình đồ họa!"
                 : "💬 Nhấp vào đây để xem gợi ý và chốt nội dung in chữ nha!";
-                
+
             triggerWrapper.innerHTML = `
                         <div class="msg-avatar"></div>
                         <div>
@@ -1297,7 +1310,12 @@
             const radios = document.getElementsByName(`surveyQ${index}`);
             radios.forEach((r) => {
               if (r.checked)
-                selected = r.value === "other" ? document.getElementById(`surveyQ${index}-other`).value.trim() : r.value;
+                selected =
+                  r.value === "other"
+                    ? document
+                        .getElementById(`surveyQ${index}-other`)
+                        .value.trim()
+                    : r.value;
             });
             if (!selected) selected = "Không có";
             finalMessage += `- ${q.question}: ${selected}\n`;
@@ -1308,15 +1326,14 @@
           const customQuote = quoteEl ? quoteEl.value.trim() : "";
 
           if (customQuote) {
-              finalMessage += `- Quote in thêm: ${customQuote}\n`;
+            finalMessage += `- Quote in thêm: ${customQuote}\n`;
           } else {
-              finalMessage += `- Quote in thêm: Không có\n`;
+            finalMessage += `- Quote in thêm: Không có\n`;
           }
           finalMessage += "Cậu render ảnh cho mình nhé!";
-          
         } else if (surveyMode === "image") {
           finalMessage = "Mình muốn gửi ảnh mẫu đính kèm để làm gốc nha.\n";
-          
+
           const detailsEl = document.getElementById("survey-img-details");
           const customQuoteEl = document.getElementById("survey-img-quote");
 
@@ -1324,9 +1341,11 @@
           const customQuote = customQuoteEl ? customQuoteEl.value.trim() : "";
 
           if (details) finalMessage += `- Chi tiết muốn thêm/sửa: ${details}\n`;
-          if (customQuote) finalMessage += `- Câu Quote/Slogan in thêm: "${customQuote}"\n`;
-          
-          finalMessage += "Cậu bám theo ảnh và yêu cầu để render cho chuẩn nhé!";
+          if (customQuote)
+            finalMessage += `- Câu Quote/Slogan in thêm: "${customQuote}"\n`;
+
+          finalMessage +=
+            "Cậu bám theo ảnh và yêu cầu để render cho chuẩn nhé!";
 
           if (surveyImageBase64) {
             currentImagesBase64.push(surveyImageBase64);
@@ -1452,32 +1471,35 @@
           if (lastWrapper && lastWrapper.classList.contains("ai")) {
             const lastBubble = lastWrapper.querySelector(".bubble.ai");
             if (lastBubble) {
-              let linksHtml = '<div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);">';
+              let linksHtml =
+                '<div style="margin-top: 14px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.1);">';
               linksHtml += quickReplies
                 .map((reply) => {
                   let displayText = "";
                   let actionText = "";
                   let color = "#00f5d4"; // Màu mặc định nếu lỗi hoặc thiếu thông tin
-                  
+
                   // Đọc chuẩn cấu trúc Object động mới
                   if (typeof reply === "object" && reply !== null) {
-                      if (reply.short_label && reply.full_text) {
-                          displayText = reply.short_label; // Text ngắn kèm icon hiện trên nút
-                          actionText = reply.full_text;     // Full text chi tiết gửi lên AI
-                          color = reply.color || "#00f5d4"; // Màu sắc viền theo vibe
-                      } else if (reply.text) {
-                          displayText = reply.text;
-                          actionText = reply.text;
-                          color = reply.color || "#00f5d4";
-                      }
+                    if (reply.short_label && reply.full_text) {
+                      displayText = reply.short_label; // Text ngắn kèm icon hiện trên nút
+                      actionText = reply.full_text; // Full text chi tiết gửi lên AI
+                      color = reply.color || "#00f5d4"; // Màu sắc viền theo vibe
+                    } else if (reply.text) {
+                      displayText = reply.text;
+                      actionText = reply.text;
+                      color = reply.color || "#00f5d4";
+                    }
                   } else {
-                      displayText = reply;
-                      actionText = reply;
+                    displayText = reply;
+                    actionText = reply;
                   }
-                  
+
                   // Mã hóa ký tự nháy đơn/nháy kép để tránh vỡ HTML khi truyền qua onclick
-                  const safeActionText = actionText.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                  
+                  const safeActionText = actionText
+                    .replace(/'/g, "\\'")
+                    .replace(/"/g, "&quot;");
+
                   // Trả về thiết kế nút Pill bo tròn đổi màu linh hoạt, hover sáng nhẹ 10% nền (color + '1A')
                   return `
                     <button class="inline-reply-btn" 
@@ -1497,13 +1519,107 @@
           }
         }
       }
+      // HÀM BẮN API RIÊNG CHO TEMPLATE ĐỂ TRUYỀN ID XUỐNG BACKEND
+      async function sendTemplateMessage(text, templateId, imagesBase64) {
+        currentImagesBase64 = []; // Reset để không bị dính vào luồng chat thường
+        hasUploadedImageInSession = true;
+        imageForNextRender = imagesBase64; // Giữ ảnh Chủ Thể làm base dự phòng
+
+        try {
+          const res = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: text,
+              image_base64_list: imagesBase64,
+              last_generated_image_url: lastGeneratedImageUrl,
+              session_id: sessionId,
+              template_id: templateId, // CHÌA KHÓA ĂN TIỀN Ở ĐÂY - Bắn ID xuống FastAPI
+            }),
+          });
+
+          const data = await res.json();
+          addAIMessages(
+            data.user_reply || "Mình đang nảy số...",
+            data.entities_extracted,
+            data.quick_replies,
+          );
+
+          // CẬP NHẬT MỚI: Lấy dữ liệu Survey và Hint từ AI trả về giống như luồng chat bình thường
+          const dynamicSurveyData = data.suggested_survey || null;
+          if (data.survey_custom_hint !== undefined) {
+            currentSurveyCustomHint = data.survey_custom_hint;
+          } else {
+            currentSurveyCustomHint =
+              "Cậu có muốn in thêm tên hay khẩu hiệu gì lên áo không? (Bỏ trống nếu không cần)";
+          }
+
+          // Nếu AI nhả prompt thành công (Đã chốt xong chữ), bung nút Render
+          if (data.is_ready_to_render && data.master_prompt) {
+            const btnWrapper = document.createElement("div");
+            btnWrapper.className = "render-btn-container";
+            const safePrompt = btoa(
+              unescape(encodeURIComponent(data.master_prompt)),
+            );
+            btnWrapper.innerHTML = `
+                <div class="msg-avatar"></div> 
+                <div>
+                    <button class="render-btn" onclick="triggerImageGen(this, '${safePrompt}')">
+                        ✨ Design xong rồi nè. Bấm để xem hình nha!
+                    </button>
+                </div>
+            `;
+            messagesContainer.appendChild(btnWrapper);
+          }
+          // CẬP NHẬT MỚI: Nếu AI chưa cho Render mà bắt điền Form chữ (Bước 2.5 của Template)
+          // CẬP NHẬT MỚI: Xử lý hiển thị nút Form an toàn hơn
+          else {
+            const hasTextHint =
+              currentSurveyCustomHint &&
+              String(currentSurveyCustomHint).trim() !== "null";
+
+            // Hiện nút Form NẾU có bài trắc nghiệm (khác null) HOẶC có câu gợi ý Quote
+            if (
+              !surveyCompleted &&
+              (dynamicSurveyData !== null || hasTextHint)
+            ) {
+              currentDynamicSurvey = dynamicSurveyData || []; // Ép về mảng rỗng nếu AI lỡ trả null
+
+              const triggerWrapper = document.createElement("div");
+              triggerWrapper.id = "survey-trigger-container";
+              triggerWrapper.className = "msg-wrapper ai";
+
+              let triggerText =
+                currentDynamicSurvey.length > 0
+                  ? "📝 Cậu có thể gõ tiếp, hoặc nhấp vào đây để cấu hình đồ họa!"
+                  : "💬 Nhấp vào đây để xem gợi ý và chốt nội dung in chữ nha!";
+
+              triggerWrapper.innerHTML = `
+                            <div class="msg-avatar">👕</div>
+                            <div>
+                                <button class="btn-trigger-survey" onclick="showSurveyForm()">
+                                    ${triggerText}
+                                </button>
+                            </div>
+                        `;
+              messagesContainer.appendChild(triggerWrapper);
+            }
+          }
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        } catch (err) {
+          console.error(err);
+          addMessage("ai", "Ôi mình bị lag tí, thử lại nhé bestie ơi 😅");
+        }
+      }
       function sendQuickReply(el, text) {
         // Vô hiệu hóa và làm mờ tất cả các nút/link gợi ý hiện có trên màn hình
-        const existingLinks = document.querySelectorAll(".inline-reply-link, .inline-reply-btn");
+        const existingLinks = document.querySelectorAll(
+          ".inline-reply-link, .inline-reply-btn",
+        );
         existingLinks.forEach((link) => {
           link.classList.add("disabled");
-          link.style.opacity = "0.4"; 
-          link.style.pointerEvents = "none"; 
+          link.style.opacity = "0.4";
+          link.style.pointerEvents = "none";
         });
 
         // Nạp full_text chi tiết vào ô input ẩn và tự động kích hoạt gửi lệnh
@@ -1627,7 +1743,7 @@
           const dynamicSurveyData = data.suggested_survey || null;
 
           if (data.survey_custom_hint !== undefined) {
-            currentSurveyCustomHint = data.survey_custom_hint; 
+            currentSurveyCustomHint = data.survey_custom_hint;
           } else {
             currentSurveyCustomHint =
               "Cậu có muốn in thêm tên hay khẩu hiệu gì lên áo không? (Bỏ trống nếu không cần)";
@@ -1648,21 +1764,27 @@
                     `;
             messagesContainer.appendChild(btnWrapper);
           } else {
-            // ĐÃ BỎ ĐIỀU KIỆN .length > 0 ĐỂ CHẤP NHẬN MẢNG RỖNG KHI CHỈ HỎI TEXT
-            if (!surveyCompleted && dynamicSurveyData !== null) {
-              currentDynamicSurvey = dynamicSurveyData;
+            const hasTextHint =
+              currentSurveyCustomHint &&
+              String(currentSurveyCustomHint).trim() !== "null";
+
+            if (
+              !surveyCompleted &&
+              (dynamicSurveyData !== null || hasTextHint)
+            ) {
+              currentDynamicSurvey = dynamicSurveyData || [];
 
               const triggerWrapper = document.createElement("div");
               triggerWrapper.id = "survey-trigger-container";
               triggerWrapper.className = "msg-wrapper ai";
-              
-              // Đổi text linh hoạt tùy theo việc có form trắc nghiệm hay không
-              let triggerText = currentDynamicSurvey.length > 0 
+
+              let triggerText =
+                currentDynamicSurvey.length > 0
                   ? "📝 Cậu có thể gõ tiếp, hoặc nhấp vào đây để cấu hình đồ họa!"
                   : "💬 Nhấp vào đây để xem gợi ý và chốt nội dung in chữ nha!";
-                  
+
               triggerWrapper.innerHTML = `
-                            <div class="msg-avatar"></div>
+                            <div class="msg-avatar">👕</div>
                             <div>
                                 <button class="btn-trigger-survey" onclick="showSurveyForm()">
                                     ${triggerText}
@@ -1736,18 +1858,27 @@
         let html = '<div class="template-gallery">';
 
         for (const [key, tpl] of Object.entries(templates)) {
+          // Hỗ trợ đọc cả key mới (image1, image2) và key cũ (subject, style)
+          const img1 = tpl.ui_demo.image1 || tpl.ui_demo.subject;
+          const img2 = tpl.ui_demo.image2 || tpl.ui_demo.style;
+
+          // Đổi nhãn text linh hoạt theo loại Template
+          const label1 =
+            key === "multi_subject_merge" ? "Chủ thể 1" : "Chủ thể";
+          const label2 = key === "multi_subject_merge" ? "Chủ thể 2" : "Style";
+
           html += `
                 <div class="template-card" onclick="selectTemplate('${key}', '${tpl.name}')">
                     <div class="template-title">✨ ${tpl.name}</div>
                     <div class="template-images-row">
                         <div class="template-img-box">
-                            <img src="${tpl.ui_demo.subject}">
-                            <span class="template-img-label">Chủ thể</span>
+                            <img src="${img1}">
+                            <span class="template-img-label">${label1}</span>
                         </div>
                         <div class="template-math">+</div>
                         <div class="template-img-box">
-                            <img src="${tpl.ui_demo.style}">
-                            <span class="template-img-label">Style</span>
+                            <img src="${img2}">
+                            <span class="template-img-label">${label2}</span>
                         </div>
                         <div class="template-math">=</div>
                         <div class="template-img-box">
@@ -1775,6 +1906,55 @@
         selectedTemplateId = templateId;
         templateImage1 = null;
         templateImage2 = null;
+        templateImage3 = null; // Reset thêm ảnh 3
+
+        let isMultiMerge = templateId === "multi_subject_merge";
+
+        let uploadBoxesHtml = "";
+        if (isMultiMerge) {
+          uploadBoxesHtml = `
+                <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
+                <input type="file" id="file-tpl-2" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 2)">
+                <input type="file" id="file-tpl-3" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 3)">
+                
+                <div class="upload-boxes-container">
+                    <div class="upload-box" onclick="document.getElementById('file-tpl-1').click()">
+                        <span style="font-size: 24px; margin-bottom: 8px;">1️⃣</span>
+                        <span style="font-size: 11px; color: #aaa;">Chủ thể 1</span>
+                        <img id="preview-tpl-1">
+                    </div>
+                    <div class="upload-box" onclick="document.getElementById('file-tpl-2').click()">
+                        <span style="font-size: 24px; margin-bottom: 8px;">2️⃣</span>
+                        <span style="font-size: 11px; color: #aaa;">Chủ thể 2</span>
+                        <img id="preview-tpl-2">
+                    </div>
+                    <div class="upload-box" onclick="document.getElementById('file-tpl-3').click()">
+                        <span style="font-size: 24px; margin-bottom: 8px;">3️⃣</span>
+                        <span style="font-size: 11px; color: #aaa;">Chủ thể 3 (Tùy chọn)</span>
+                        <img id="preview-tpl-3">
+                    </div>
+                </div>
+            `;
+        } else {
+          uploadBoxesHtml = `
+                <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
+                <input type="file" id="file-tpl-2" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 2)">
+                
+                <div class="upload-boxes-container">
+                    <div class="upload-box" onclick="document.getElementById('file-tpl-1').click()">
+                        <span style="font-size: 24px; margin-bottom: 8px;">👱‍♂️</span>
+                        <span style="font-size: 12px; color: #aaa;">Tải ảnh Chủ Thể</span>
+                        <img id="preview-tpl-1">
+                    </div>
+                    <div style="display:flex; align-items:center; color:#666;">+</div>
+                    <div class="upload-box" onclick="document.getElementById('file-tpl-2').click()">
+                        <span style="font-size: 24px; margin-bottom: 8px;">🎨</span>
+                        <span style="font-size: 12px; color: #aaa;">Tải ảnh Style/Nền</span>
+                        <img id="preview-tpl-2">
+                    </div>
+                </div>
+            `;
+        }
 
         const wrapper = document.createElement("div");
         wrapper.className = "msg-wrapper ai";
@@ -1783,31 +1963,13 @@
               <div style="width:100%;">
                   <div class="bubble ai">
                       Cậu vừa chọn phép thuật: <strong>${templateName}</strong> 🪄<br>
-                      Bây giờ cậu tải 2 ảnh lên ô tương ứng dưới này giúp mình nha!
+                      ${isMultiMerge ? "Tải lên các nhân vật cậu muốn ghép chung nhé (Tối đa 3 ảnh nha)!" : "Bây giờ cậu tải 2 ảnh lên ô tương ứng dưới này giúp mình nha!"}
                   </div>
                   
                   <div class="template-upload-zone" id="tpl-zone-${templateId}">
-                      <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
-                      <input type="file" id="file-tpl-2" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 2)">
-                      
-                      <div class="upload-boxes-container">
-                          <div class="upload-box" onclick="document.getElementById('file-tpl-1').click()">
-                              <span style="font-size: 24px; margin-bottom: 8px;">👱‍♂️</span>
-                              <span style="font-size: 12px; color: #aaa;">Tải ảnh Chủ Thể</span>
-                              <img id="preview-tpl-1">
-                          </div>
-                          <div style="display:flex; align-items:center; color:#666;">+</div>
-                          <div class="upload-box" onclick="document.getElementById('file-tpl-2').click()">
-                              <span style="font-size: 24px; margin-bottom: 8px;">🎨</span>
-                              <span style="font-size: 12px; color: #aaa;">Tải ảnh Style/Nền</span>
-                              <img id="preview-tpl-2">
-                          </div>
-                      </div>
-                      
-                      <input type="text" id="tpl-note-${templateId}" class="survey-input" placeholder="Ghi chú thêm (Đổi màu áo, thêm kính...) " style="margin-top: 12px; width: 100%;">
-                      
+                      ${uploadBoxesHtml}
                       <button class="render-btn" style="width: 100%; margin-top: 12px;" onclick="submitTemplateFlow('${templateId}')">
-                          🚀 Bắt đầu hô biến!
+                          🚀 Xác nhận ảnh!
                       </button>
                   </div>
               </div>
@@ -1850,12 +2012,14 @@
             // Gán ảnh vào đúng biến và hiển thị lên giao diện
             if (index === 1) {
               templateImage1 = b64;
-              const preview = document.getElementById("preview-tpl-1");
-              preview.src = b64;
-              preview.style.display = "block";
-            } else {
+            } else if (index === 2) {
               templateImage2 = b64;
-              const preview = document.getElementById("preview-tpl-2");
+            } else if (index === 3) {
+              templateImage3 = b64;
+            }
+
+            const preview = document.getElementById(`preview-tpl-${index}`);
+            if (preview) {
               preview.src = b64;
               preview.style.display = "block";
             }
@@ -1870,82 +2034,37 @@
 
       // XỬ LÝ KHI KHÁCH BẤM "BẮT ĐẦU HÔ BIẾN"
       function submitTemplateFlow(templateId) {
-        // Ràng buộc cứng: Phải đủ 2 ảnh mới cho chạy
+        let isMultiMerge = templateId === "multi_subject_merge";
+        surveyCompleted = false;
+
         if (!templateImage1 || !templateImage2) {
-          alert("Cậu nhớ tải đủ cả 2 ảnh (Chủ Thể và Style) nha! 🥺");
+          alert("Cậu nhớ tải ít nhất 2 ảnh đầu tiên nha! 🥺");
           return;
         }
 
-        const noteInput = document.getElementById(`tpl-note-${templateId}`);
-        const note = noteInput ? noteInput.value.trim() : "";
+        let finalMessage = isMultiMerge
+          ? "Mình gửi các nhân vật cần ghép rồi nè, cậu cho mình xem vài form tùy chọn Style và Pose dáng nhé!"
+          : "Mình muốn mix ảnh theo Template!";
 
-        let finalMessage = `Mình muốn mix ảnh theo Template!`;
-        if (note) {
-          finalMessage += `\nYêu cầu thêm của mình: ${note}`;
+        // Nếu không phải là MultiMerge, lấy thêm note của khách
+        if (!isMultiMerge) {
+          const noteInput = document.getElementById(`tpl-note-${templateId}`);
+          const note = noteInput ? noteInput.value.trim() : "";
+          if (note) {
+            finalMessage += `\nYêu cầu thêm của mình: ${note}`;
+          }
         }
 
-        // Dọn dẹp cái ô upload đi cho khung chat gọn gàng lại
         const zone = document.getElementById(`tpl-zone-${templateId}`);
         if (zone) {
-          // Thay bằng một text nhỏ nhắn xác nhận
           zone.outerHTML = `<div style="margin-top:8px; font-size:13px; color:#00f5d4;">Đã xác nhận dữ liệu hình ảnh ✔️</div>`;
         }
 
         currentImagesBase64 = [templateImage1, templateImage2];
+        if (templateImage3) currentImagesBase64.push(templateImage3); // Thêm ảnh 3 nếu có
+
         addMessage("user", finalMessage, currentImagesBase64);
-
-        // Bắn lệnh riêng cho Template
         sendTemplateMessage(finalMessage, templateId, currentImagesBase64);
-      }
-
-      // HÀM BẮN API RIÊNG CHO TEMPLATE ĐỂ TRUYỀN ID XUỐNG BACKEND
-      async function sendTemplateMessage(text, templateId, imagesBase64) {
-        currentImagesBase64 = []; // Reset để không bị dính vào luồng chat thường
-        hasUploadedImageInSession = true;
-        imageForNextRender = imagesBase64; // Giữ ảnh Chủ Thể làm base dự phòng
-
-        try {
-          const res = await fetch("/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: text,
-              image_base64_list: imagesBase64,
-              last_generated_image_url: lastGeneratedImageUrl,
-              session_id: sessionId,
-              template_id: templateId, // CHÌA KHÓA ĂN TIỀN Ở ĐÂY - Bắn ID xuống FastAPI
-            }),
-          });
-
-          const data = await res.json();
-          addAIMessages(
-            data.user_reply || "Mình đang nảy số...",
-            data.entities_extracted,
-            data.quick_replies,
-          );
-
-          // Nếu AI nhả prompt thành công, bung nút Render
-          if (data.is_ready_to_render && data.master_prompt) {
-            const btnWrapper = document.createElement("div");
-            btnWrapper.className = "render-btn-container";
-            const safePrompt = btoa(
-              unescape(encodeURIComponent(data.master_prompt)),
-            );
-            btnWrapper.innerHTML = `
-                <div class="msg-avatar"></div> 
-                <div>
-                    <button class="render-btn" onclick="triggerImageGen(this, '${safePrompt}')">
-                        ✨ Design xong rồi nè. Bấm để xem hình nha!
-                    </button>
-                </div>
-            `;
-            messagesContainer.appendChild(btnWrapper);
-          }
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        } catch (err) {
-          console.error(err);
-          addMessage("ai", "Ôi mình bị lag tí, thử lại nhé bestie ơi 😅");
-        }
       }
       async function triggerImageGen(btn, encodedPrompt) {
         const masterPrompt = decodeURIComponent(escape(atob(encodedPrompt)));
@@ -1957,7 +2076,7 @@
         let referenceImages = [];
 
         if (Array.isArray(imageForNextRender)) {
-          referenceImages = [...imageForNextRender]; 
+          referenceImages = [...imageForNextRender];
         } else if (imageForNextRender) {
           referenceImages = [imageForNextRender];
         } else if (currentImagesBase64 && currentImagesBase64.length > 0) {
@@ -1967,16 +2086,16 @@
         }
 
         try {
-        const res = await fetch("/generate-image", {
+          const res = await fetch("/generate-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                master_prompt: masterPrompt,
-                reference_images: referenceImages,
-                is_final: false,
-                is_retry: false   // Rõ ràng
+              master_prompt: masterPrompt,
+              reference_images: referenceImages,
+              is_final: false,
+              is_retry: false, // Rõ ràng
             }),
-        });
+          });
 
           const data = await res.json();
           hideAILoading();
@@ -1988,7 +2107,7 @@
 
             const wrapper = document.createElement("div");
             wrapper.className = "msg-wrapper ai";
-            
+
             // [CẬP NHẬT GIAO DIỆN]: Thêm nút Chốt Final bên cạnh nút Retry
             wrapper.innerHTML = `
                 <div class="msg-avatar">👕</div>
@@ -2026,13 +2145,14 @@
       // HÀM MỚI: XỬ LÝ UPSCALE VÀ RENDER BẢN CHUẨN IN
       async function triggerFinalRender(btn, encodedPrompt, previewImageUrl) {
         const masterPrompt = decodeURIComponent(escape(atob(encodedPrompt)));
-        
+
         // Ẩn cụm nút để tránh khách bấm nhiều lần
         btn.parentElement.style.display = "none";
-        
+
         // Hiện loading với dòng Text riêng cho giai đoạn này
         showAILoading();
-        document.getElementById("loading-sub").innerText = "ĐANG UPSIZE & TĂNG ĐỘ NÉT CHUẨN IN...";
+        document.getElementById("loading-sub").innerText =
+          "ĐANG UPSIZE & TĂNG ĐỘ NÉT CHUẨN IN...";
 
         try {
           const res = await fetch("/generate-image", {
@@ -2041,7 +2161,7 @@
             body: JSON.stringify({
               master_prompt: masterPrompt,
               reference_images: [previewImageUrl], // Đẩy chính cái ảnh preview lên để làm gốc
-              is_final: true // KÍCH HOẠT CỜ FINAL CHO BACKEND
+              is_final: true, // KÍCH HOẠT CỜ FINAL CHO BACKEND
             }),
           });
 
@@ -2065,7 +2185,10 @@
             `;
             messagesContainer.appendChild(wrapper);
           } else {
-            addMessage("ai", `Ui, xưởng in báo lỗi lúc upscale rồi 🥲<br><br><div class="debug" style="color:#ff4d4d;">${data.error || "Không xác định"}</div>`);
+            addMessage(
+              "ai",
+              `Ui, xưởng in báo lỗi lúc upscale rồi 🥲<br><br><div class="debug" style="color:#ff4d4d;">${data.error || "Không xác định"}</div>`,
+            );
           }
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
         } catch (error) {
@@ -2140,46 +2263,46 @@
       }
 
       function submitRetry(actionType = "edit") {
-    const text = document.getElementById("retry-input").value.trim();
+        const text = document.getElementById("retry-input").value.trim();
 
-    if (actionType === "edit") {
-        if (selectedRetryIndex === -1) {
+        if (actionType === "edit") {
+          if (selectedRetryIndex === -1) {
             alert("Vui lòng chọn một ảnh AI bên trên để sửa!");
             return;
-        }
-        if (!text) {
+          }
+          if (!text) {
             alert("Vui lòng nhập yêu cầu sửa đổi!");
             return;
+          }
         }
-    }
 
-    let selectedItem = null;
-    if (selectedRetryIndex !== -1) {
-        selectedItem = sessionGallery[selectedRetryIndex];
-    }
+        let selectedItem = null;
+        if (selectedRetryIndex !== -1) {
+          selectedItem = sessionGallery[selectedRetryIndex];
+        }
 
-    closeRetryModal();
+        closeRetryModal();
 
-    if (actionType === "edit" && selectedItem) {
-        // === SỬA TRỰC TIẾP BẰNG GROK IMAGINE ===
-        showAILoading();
+        if (actionType === "edit" && selectedItem) {
+          // === SỬA TRỰC TIẾP BẰNG GROK IMAGINE ===
+          showAILoading();
 
-        const editPrompt = `Edit this image according to the request: ${text}. Keep the same style, composition and quality.`;
+          const editPrompt = `Edit this image according to the request: ${text}. Keep the same style, composition and quality.`;
 
-        fetch("/generate-image", {
+          fetch("/generate-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                master_prompt: editPrompt,
-                reference_images: [selectedItem.src],
-                is_final: false,
-                is_retry: true          // ← Flag quan trọng
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            hideAILoading();
-            if (data.image_url) {
+              master_prompt: editPrompt,
+              reference_images: [selectedItem.src],
+              is_final: false,
+              is_retry: true, // ← Flag quan trọng
+            }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              hideAILoading();
+              if (data.image_url) {
                 lastGeneratedImageUrl = data.image_url;
                 sessionGallery.push({ src: data.image_url, type: "generated" });
 
@@ -2202,30 +2325,36 @@
                 `;
                 messagesContainer.appendChild(wrapper);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            } else {
-                addMessage("ai", `Lỗi khi sửa ảnh: ${data.error || "Không xác định"}`);
-            }
-        })
-        .catch(err => {
-            hideAILoading();
-            console.error(err);
-            addMessage("ai", "Lỗi kết nối khi retry.");
-        });
+              } else {
+                addMessage(
+                  "ai",
+                  `Lỗi khi sửa ảnh: ${data.error || "Không xác định"}`,
+                );
+              }
+            })
+            .catch((err) => {
+              hideAILoading();
+              console.error(err);
+              addMessage("ai", "Lỗi kết nối khi retry.");
+            });
+        } else if (actionType === "regenerate") {
+          // Tạo lại từ ảnh gốc (giữ logic cũ)
+          let finalMessage = `I want to REGENERATE the design based on my ORIGINAL uploaded image. New request: ${text || "Try different style"}`;
 
-    } else if (actionType === "regenerate") {
-        // Tạo lại từ ảnh gốc (giữ logic cũ)
-        let finalMessage = `I want to REGENERATE the design based on my ORIGINAL uploaded image. New request: ${text || "Try different style"}`;
-        
-        const originalImages = sessionGallery.filter(item => item.type === "original");
-        if (originalImages.length > 0) {
-            currentImagesBase64 = [originalImages[originalImages.length - 1].src];
+          const originalImages = sessionGallery.filter(
+            (item) => item.type === "original",
+          );
+          if (originalImages.length > 0) {
+            currentImagesBase64 = [
+              originalImages[originalImages.length - 1].src,
+            ];
             imageForNextRender = currentImagesBase64[0];
-        }
+          }
 
-        msgInput.value = finalMessage;
-        sendMessage();
-    }
-}
+          msgInput.value = finalMessage;
+          sendMessage();
+        }
+      }
 
       async function clearChat() {
         if (confirm("Xóa hết cuộc trò chuyện và bắt đầu ý tưởng mới?")) {

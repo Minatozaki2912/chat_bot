@@ -1,44 +1,44 @@
 {
-  "chinh_sach_kinh_doanh": {
-    "thoi_gian_lam_viec": "Xưởng hoạt động từ Thứ 2 đến hết Thứ 6. Tối Thứ 6, Thứ 7, Chủ Nhật và ngày lễ xưởng nghỉ ngơi không làm việc và không giao hàng.",
-    "thoi_gian_san_xuat": "Xưởng vận hành theo mô hình Print-on-Demand cao cấp. Kể từ lúc chốt thiết kế, xưởng cần 1 đến 2 ngày làm việc (không tính T7, CN) để in ấn.",
-    "thoi_gian_giao_hang": "Giao hỏa tốc nội thành mất 1 ngày làm việc. Giao tiêu chuẩn đi các tỉnh khác mất từ 3-5 ngày làm việc. Thời gian giao hàng này là sau khi đã in xong.",
-    "chinh_sach_doi_tra": "Xưởng hỗ trợ đổi trả MIỄN PHÍ 100% trong 7 ngày đầu nếu lỗi thuộc về xưởng (in sai hình, rách vải, nhầm màu). Không áp dụng đổi trả nếu khách hàng chọn sai size áo đâu nè, nên cậu check bảng size kỹ nha!",
-    "huong_dan_bao_quan": "Để hình in bền màu nhất: Giặt máy lộn trái áo, dùng nước lạnh. KHÔNG ủi trực tiếp lên hình in và KHÔNG dùng nước tẩy mạnh."
+  "business_policies": {
+    "working_hours": "The workshop operates from Monday to the end of Friday. On Friday nights, Saturdays, Sundays, and public holidays, the workshop rests and does not process or deliver orders.",
+    "production_time": "The workshop operates on a premium Print-on-Demand model. From the moment the design is finalized, the workshop needs 1 to 2 business days (excluding weekends) for printing.",
+    "shipping_time": "Express delivery within the city takes 1 business day. Standard delivery to other provinces takes 3-5 business days. This delivery time applies after the printing is complete.",
+    "return_policy": "The workshop offers 100% FREE returns within the first 7 days if the error is ours (wrong print, torn fabric, wrong color). Returns are not accepted if the customer chooses the wrong shirt size, so please check the size chart carefully!",
+    "care_instructions": "For the most durable print: Machine wash inside out using cold water. DO NOT iron directly on the print and DO NOT use strong bleach."
   },
-  "cong_nghe_in_an": {
-    "ao_thun_va_hoodie": "Sử dụng công nghệ in DTG (Direct-to-Garment) phun mực trực tiếp ngấm vào sợi vải, hoặc in Pet Chuyển Nhiệt cao cấp cho màu sắc rực rỡ, không hề bong tróc.",
-    "tui_tote_va_pillow": "In chuyển nhiệt Sublimation tràn viền siêu mượt, mực thấm sâu vào sợi canvas/nhung nỉ, giặt máy vò tay thoải mái không phai màu."
+  "printing_technology": {
+    "t_shirt_and_hoodie": "Uses DTG (Direct-to-Garment) technology spraying ink directly into the fabric fibers, or premium Pet Heat Transfer for vibrant colors with absolutely no peeling.",
+    "tote_bag_and_pillow": "Uses borderless Sublimation heat transfer; the ink penetrates deeply into the canvas/velvet fibers, allowing for comfortable machine or hand washing without fading."
   },
-  "danh_muc_san_pham_mau": {
-    "ao_thun": [
+  "sample_product_catalog": {
+    "t_shirt": [
       "https://i.postimg.cc/G2jZCZFY/ahri-mockup.jpg",
       "https://i.postimg.cc/J0ndWt7g/jett-mockup.jpg",
       "https://i.postimg.cc/4dnFDm3K/yoru-mockup.jpg"
     ],
-    "tui_tote": [
+    "tote_bag": [
       "https://i.postimg.cc/L6WG2kP6/ahri-tote.jpg",
       "https://i.postimg.cc/K8rVL6VF/jett-tote.jpg",
       "https://i.postimg.cc/3wZsKZ8C/yoru-tote.jpg"
     ],
-    "ao_hoodie": [
+    "hoodie": [
       "https://i.postimg.cc/C5hpnFMh/ahri-hood.jpg",
       "https://i.postimg.cc/Gh4S7B5Y/jett-hood.jpg",
       "https://i.postimg.cc/CLb6pywd/yoru-hood.jpg"
     ],
-    "pillow_goi": [
+    "pillow": [
       "https://i.postimg.cc/qBj9ZHM3/ahri-pillow.jpg",
       "https://i.postimg.cc/fWJ6Fg3V/jett-pillow.jpg",
       "https://i.postimg.cc/pdcsJRBt/yoru-pillow.jpg"
     ]
   },
-  "chat_lieu_va_size": {
-    "ao_thun": "Chất liệu: 100% Cotton 2 chiều, định lượng 250gsm dày dặn đứng form cực xịn. Bảng size: S (40-50kg), M (50-60kg), L (60-70kg), XL (70-85kg).",
-    "tui_tote": "Chất liệu: Vải Canvas mộc loại 1 cực dày, quai xách chữ X chịu lực 10kg. Kích thước: 35x40cm (đựng vừa khít Laptop 15.6 inch luôn).",
-    "ao_hoodie": "Chất liệu: Nỉ bông cotton 350gsm lót lông cừu siêu ấm. Bảng size: M (45-60kg), L (60-75kg), XL (75-90kg).",
-    "pillow": "Chất liệu: Vỏ gối nhung nỉ Hàn Quốc có khóa kéo tàng hình siêu sang, ruột bông gòn tinh khiết siêu phồng."
+  "materials_and_sizing": {
+    "t_shirt": "Material: 100% 2-way Cotton, 250gsm weight, thick and holds its shape perfectly. Sizes: S (40-50kg), M (50-60kg), L (60-70kg), XL (70-85kg).",
+    "tote_bag": "Material: Premium heavy raw Canvas fabric, X-stitched handles bearing up to 10kg. Dimensions: 35x40cm (fits a 15.6-inch laptop perfectly).",
+    "hoodie": "Material: 350gsm cotton fleece lined with ultra-warm sheep wool. Sizes: M (45-60kg), L (60-75kg), XL (75-90kg).",
+    "pillow": "Material: Korean velvet pillowcase with an elegant invisible zipper, filled with pure, ultra-fluffy cotton."
   },
-  "chinh_sach_khuyen_mai": {
-    "giam_gia": "Giảm ngay 10% tổng hóa đơn nếu khách hàng đặt mua từ 3 sản phẩm trở lên. Dưới 3 sản phẩm thì bán đúng giá niêm yết."
+  "promotional_policies": {
+    "discount": "Get an instant 10% discount on the total bill if the customer orders 3 or more products. For less than 3 products, the listed price applies."
   }
 }
