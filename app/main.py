@@ -323,13 +323,13 @@ def remove_bg_floodfill(img):
 def call_image_generation(
     master_prompt: str,
     reference_images: list = None,
-    is_final: bool = False,
     is_retry: bool = False,
 ):
     """
-    Hybrid Image Generation và Editing sử dụng xAI Grok Imagine:
-    - Tạo ảnh từ đầu (is_retry=False): Dùng IMAGE_MODEL_GEN (grok-imagine-image-quality)
-    - Sửa ảnh / Retry (is_retry=True):  Dùng IMAGE_MODEL_EDIT (grok-imagine-image)
+    Sinh ảnh preview từ AI (luôn trả về bản preview, không generate final).
+    - Tạo ảnh từ đầu (is_retry=False): Dùng IMAGE_MODEL_GEN
+    - Retry/sửa ảnh  (is_retry=True):  Dùng IMAGE_MODEL_EDIT
+    Final được xử lý hoàn toàn riêng qua finalize_image() — không gọi lại AI.
     """
     output_dir = os.path.join(_PROJECT_ROOT, "outputs")
     os.makedirs(output_dir, exist_ok=True)
@@ -340,12 +340,7 @@ def call_image_generation(
     - Absolutely NO gradients, NO shadows, NO environment, NO scenic elements.
     - Main subject must be perfectly isolated, centered, and clean for apparel printing.
     """
-
-    if is_final:
-        sharpness_boost = "\n\n[FINAL RENDER QUALITY]: 8k resolution, ultra-detailed, highly crisp lines, vector-like sharpness, masterpiece, professional print-ready quality."
-        full_prompt = master_prompt + "\n\n" + sharpness_boost + "\n\n" + pod_output_instruction
-    else:
-        full_prompt = master_prompt + "\n\n" + pod_output_instruction
+    full_prompt = master_prompt + "\n\n" + pod_output_instruction
 
     # ============================================================
     # LUẬT CHỌN MODEL ĐỘNG THEO YÊU CẦU ĐỔI MỚI
@@ -356,8 +351,7 @@ def call_image_generation(
         # 1. CHẾ ĐỘ CÓ ẢNH THAM CHIẾU (Image-to-Image / Multi-Image Editing)
         if reference_images and len(reference_images) > 0:
             print(f"🖼️ Using Grok Imagine Edits (is_retry={is_retry}) | Model: {selected_model}")
-            
-            # Xây dựng mảng payload hỗ trợ từ 1 đến tối đa 3 ảnh nguồn theo tài liệu xAI
+
             image_payloads = []
             for img in reference_images[:3]:
                 img_input = _to_base64_url(img) or img
@@ -376,8 +370,7 @@ def call_image_generation(
                     "model": selected_model,
                     "prompt": full_prompt,
                     "n": 1,
-                    "images": image_payloads, # Sử dụng mảng images chuẩn mã nguồn xAI
-                    "aspect_ratio": "1:1",    # Ép tỷ lệ vuông chuẩn hóa cho hình in áo
+                    "images": image_payloads,
                 },
                 timeout=180,
             )
@@ -399,9 +392,6 @@ def call_image_generation(
                 timeout=180,
             )
 
-        # ============================================================
-        # XỬ LÝ ĐẦU RA (GIỮ NGUYÊN LOGIC PHÁT TRIỂN CỦA DỰ ÁN)
-        # ============================================================
         if response.status_code != 200:
             error_msg = response.text[:1000]
             print(f"❌ Image API Error ({response.status_code}): {error_msg}")
@@ -417,46 +407,91 @@ def call_image_generation(
         else:
             raise Exception("No image returned from API")
 
-        # Giai đoạn 1: Bản Draft xem trước - tách nền giữ nguyên phân giải gốc
-        if not is_final:
-            print("🧼 Processing preview (remove bg)...")
-            img_no_bg = remove_bg_floodfill(img_raw)
-            filename = f"preview_no_bg_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
-            img_no_bg.save(os.path.join(output_dir, filename), format="PNG")
-            return {"image_url": f"/outputs/{filename}", "error": None}
-
-        # Giai đoạn 2: Bản Final - tách nền + upscale 4500x5400 độ phân giải 300 DPI chuẩn xưởng in
-        else:
-            print("🚀 Processing FINAL POD render (4500x5400)...")
-            img_no_bg = remove_bg_floodfill(img_raw)
-
-            target_w, target_h = 4500, 5400
-            final_img = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
-
-            max_w = int(target_w * 0.85)
-            max_h = int(target_h * 0.85)
-            aspect = img_no_bg.width / img_no_bg.height
-            if aspect > (max_w / max_h):
-                new_w, new_h = max_w, int(max_w / aspect)
-            else:
-                new_w, new_h = int(max_h * aspect), max_h
-
-            img_resized = img_no_bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
-            paste_x = (target_w - new_w) // 2
-            paste_y = (target_h - new_h) // 2
-            final_img.paste(img_resized, (paste_x, paste_y), img_resized)
-
-            filename = f"pod_design_final_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
-            final_img.save(
-                os.path.join(output_dir, filename),
-                format="PNG",
-                dpi=(300, 300),
-                optimize=True,
-            )
-            return {"image_url": f"/outputs/{filename}", "error": None}
+        # Luôn trả về bản preview — tách nền, giữ nguyên resolution gốc
+        print("🧼 Processing preview (remove bg)...")
+        img_no_bg = remove_bg_floodfill(img_raw)
+        filename = f"preview_no_bg_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
+        img_no_bg.save(os.path.join(output_dir, filename), format="PNG")
+        return {"image_url": f"/outputs/{filename}", "error": None}
 
     except Exception as e:
         print(f"❌ call_image_generation Exception: {e}")
+        return {"image_url": None, "error": str(e)}
+
+
+def finalize_image(preview_image_url: str):
+    """
+    Chốt ảnh final — KHÔNG gọi AI, KHÔNG edit gì thêm.
+    Nhận đúng file preview khách đã duyệt (đã tách nền sẵn).
+    Chỉ upscale lên 4500x5400 300 DPI bằng Pillow thuần + sharpen để bù mờ.
+    """
+    from PIL import ImageFilter
+
+    output_dir = os.path.join(_PROJECT_ROOT, "outputs")
+    os.makedirs(output_dir, exist_ok=True)
+
+    try:
+        # Đọc file preview từ đường dẫn nội bộ — không qua AI, không qua network
+        if preview_image_url.startswith("/outputs/"):
+            file_path = os.path.join(_PROJECT_ROOT, preview_image_url.lstrip("/"))
+        else:
+            return {"image_url": None, "error": "Invalid preview_image_url — must be an /outputs/ path"}
+
+        if not os.path.exists(file_path):
+            return {"image_url": None, "error": f"Preview file not found: {file_path}"}
+
+        print(f"🚀 Finalizing from preview: {preview_image_url}")
+
+        # Đọc ảnh preview — đã tách nền sẵn từ bước generate, KHÔNG gọi remove_bg lại
+        # (gọi lại flood fill trên ảnh đã có alpha sẽ làm hỏng viền chủ thể)
+        img = Image.open(file_path).convert("RGBA")
+
+        # ── BƯỚC 1: Tách riêng kênh RGB và Alpha để xử lý độc lập ──────────────
+        r, g, b, a = img.split()
+        rgb = Image.merge("RGB", (r, g, b))
+
+        # ── BƯỚC 2: Upscale RGB lên canvas target bằng LANCZOS ──────────────────
+        # Tính kích thước mới giữ nguyên aspect ratio, vừa trong 85% canvas
+        target_w, target_h = 4500, 5400
+        max_w = int(target_w * 0.85)   # 3825
+        max_h = int(target_h * 0.85)   # 4590
+        aspect = img.width / img.height
+        if aspect > (max_w / max_h):
+            new_w = max_w
+            new_h = int(max_w / aspect)
+        else:
+            new_w = int(max_h * aspect)
+            new_h = max_h
+
+        rgb_resized = rgb.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        alpha_resized = a.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+        # ── BƯỚC 3: Sharpen RGB sau upscale để bù độ mờ do kéo giãn ────────────
+        # UnsharpMask: radius=2 là vùng blur so sánh, percent=150 là cường độ,
+        # threshold=3 là ngưỡng pixel tối thiểu để áp dụng (tránh noise)
+        rgb_sharp = rgb_resized.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+
+        # ── BƯỚC 4: Ghép lại RGBA và paste vào canvas trắng trong suốt ──────────
+        img_final_subject = Image.merge("RGBA", (*rgb_sharp.split(), alpha_resized))
+
+        canvas = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 0))
+        paste_x = (target_w - new_w) // 2
+        paste_y = (target_h - new_h) // 2
+        canvas.paste(img_final_subject, (paste_x, paste_y), img_final_subject)
+
+        # ── BƯỚC 5: Lưu file PNG 300 DPI chuẩn xưởng in ────────────────────────
+        filename = f"pod_design_final_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
+        canvas.save(
+            os.path.join(output_dir, filename),
+            format="PNG",
+            dpi=(300, 300),
+            optimize=True,
+        )
+        print(f"✅ Final saved: {filename} ({target_w}x{target_h} @ 300 DPI)")
+        return {"image_url": f"/outputs/{filename}", "error": None}
+
+    except Exception as e:
+        print(f"❌ finalize_image Exception: {e}")
         return {"image_url": None, "error": str(e)}
 
 
@@ -507,8 +542,7 @@ async def generate_image_endpoint(request: Request):
     data = await request.json()
     master_prompt = data.get("master_prompt")
     reference_images = data.get("reference_images")
-    is_final = data.get("is_final", False)
-    is_retry = data.get("is_retry", False)  # ← Flag quan trọng
+    is_retry = data.get("is_retry", False)
 
     if not master_prompt:
         return JSONResponse(content={"error": "Missing master_prompt"}, status_code=400)
@@ -516,9 +550,25 @@ async def generate_image_endpoint(request: Request):
     img_res = call_image_generation(
         master_prompt=master_prompt,
         reference_images=reference_images,
-        is_final=is_final,
         is_retry=is_retry,
     )
+    return JSONResponse(content=img_res)
+
+
+@app.post("/finalize-image")
+async def finalize_image_endpoint(request: Request):
+    """
+    Endpoint chốt ảnh final — KHÔNG gọi lại AI.
+    Frontend gửi lên đúng preview_image_url của ảnh khách đã duyệt.
+    Backend chỉ upscale lên 4500x5400 300 DPI và trả về file chuẩn xưởng in.
+    """
+    data = await request.json()
+    preview_image_url = data.get("preview_image_url")
+
+    if not preview_image_url:
+        return JSONResponse(content={"error": "Missing preview_image_url"}, status_code=400)
+
+    img_res = finalize_image(preview_image_url)
     return JSONResponse(content=img_res)
 
 

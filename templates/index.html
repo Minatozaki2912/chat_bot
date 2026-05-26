@@ -2144,7 +2144,8 @@
       }
       // HÀM MỚI: XỬ LÝ UPSCALE VÀ RENDER BẢN CHUẨN IN
       async function triggerFinalRender(btn, encodedPrompt, previewImageUrl) {
-        const masterPrompt = decodeURIComponent(escape(atob(encodedPrompt)));
+        // encodedPrompt không còn dùng nữa — backend KHÔNG generate lại ảnh,
+        // chỉ upscale đúng file preview khách đã duyệt bằng Pillow thuần.
 
         // Ẩn cụm nút để tránh khách bấm nhiều lần
         btn.parentElement.style.display = "none";
@@ -2152,16 +2153,14 @@
         // Hiện loading với dòng Text riêng cho giai đoạn này
         showAILoading();
         document.getElementById("loading-sub").innerText =
-          "ĐANG UPSIZE & TĂNG ĐỘ NÉT CHUẨN IN...";
+          "ĐANG UPSCALE 4500×5400 — 300 DPI CHUẨN IN...";
 
         try {
-          const res = await fetch("/generate-image", {
+          const res = await fetch("/finalize-image", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              master_prompt: masterPrompt,
-              reference_images: [previewImageUrl], // Đẩy chính cái ảnh preview lên để làm gốc
-              is_final: true, // KÍCH HOẠT CỜ FINAL CHO BACKEND
+              preview_image_url: previewImageUrl, // Đúng ảnh preview khách đã duyệt
             }),
           });
 
