@@ -1968,6 +1968,16 @@
                   
                   <div class="template-upload-zone" id="tpl-zone-${templateId}">
                       ${uploadBoxesHtml}
+                      <div style="margin-top: 14px;">
+                          <input
+                              type="text"
+                              id="tpl-note-${templateId}"
+                              class="survey-input"
+                              placeholder="✏️ In thêm chữ lên áo? Nhập tên hoặc quote ở đây (có thể bỏ qua)"
+                              title="Nhập câu quote, slogan hoặc tên người thân muốn in lên áo. Ví dụ: 'Best Mom Ever' hoặc 'Tên: Minh'. Bỏ trống nếu không cần in chữ."
+                              style="width: 100%; box-sizing: border-box;"
+                          >
+                      </div>
                       <button class="render-btn" style="width: 100%; margin-top: 12px;" onclick="submitTemplateFlow('${templateId}')">
                           🚀 Xác nhận ảnh!
                       </button>
@@ -2046,13 +2056,13 @@
           ? "Mình gửi các nhân vật cần ghép rồi nè, cậu cho mình xem vài form tùy chọn Style và Pose dáng nhé!"
           : "Mình muốn mix ảnh theo Template!";
 
-        // Nếu không phải là MultiMerge, lấy thêm note của khách
-        if (!isMultiMerge) {
-          const noteInput = document.getElementById(`tpl-note-${templateId}`);
-          const note = noteInput ? noteInput.value.trim() : "";
-          if (note) {
-            finalMessage += `\nYêu cầu thêm của mình: ${note}`;
-          }
+        // Đọc quote từ input — áp dụng cho tất cả loại template
+        const noteInput = document.getElementById(`tpl-note-${templateId}`);
+        const note = noteInput ? noteInput.value.trim() : "";
+        if (note) {
+          finalMessage += `\nIn thêm chữ lên áo: "${note}"`;
+        } else {
+          finalMessage += `\nKhông cần in chữ lên áo.`;
         }
 
         const zone = document.getElementById(`tpl-zone-${templateId}`);

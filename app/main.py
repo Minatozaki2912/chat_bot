@@ -292,11 +292,14 @@ def _to_base64_url(path: str) -> str | None:
     return None
 
 
-def remove_bg_floodfill(img):
+def remove_bg_floodfill(img, remove_inner_white: bool = True):
     """
     Tách nền kết hợp 2 lớp:
-    1. Flood Fill: quét sạch mảng nền lớn bên ngoài.
+    1. Flood Fill: quét sạch mảng nền lớn bên ngoài (luôn chạy).
     2. Numpy Mask: đục thủng các "lỗ" màu trắng tinh bị kẹt bên trong.
+       → Chỉ chạy khi remove_inner_white=True (generate lần đầu).
+       → Tắt khi retry vì ảnh đang có background trắng chủ đích (card, border...),
+         đục vào sẽ xóa nhầm chi tiết thiết kế.
     """
     img = img.convert("RGBA")
 
@@ -311,12 +314,18 @@ def remove_bg_floodfill(img):
         (temp_array[:, :, 1] == 0)   &
         (temp_array[:, :, 2] == 255)
     )
-    pure_white_mask = (
-        (img_array[:, :, 0] >= 250) &
-        (img_array[:, :, 1] >= 250) &
-        (img_array[:, :, 2] >= 250)
-    )
-    img_array[outer_bg_mask | pure_white_mask, 3] = 0
+
+    if remove_inner_white:
+        pure_white_mask = (
+            (img_array[:, :, 0] >= 250) &
+            (img_array[:, :, 1] >= 250) &
+            (img_array[:, :, 2] >= 250)
+        )
+        img_array[outer_bg_mask | pure_white_mask, 3] = 0
+    else:
+        # Retry mode: chỉ xóa outer background, giữ nguyên mọi chi tiết bên trong
+        img_array[outer_bg_mask, 3] = 0
+
     return Image.fromarray(img_array)
 
 
@@ -340,7 +349,14 @@ def call_image_generation(
     - Absolutely NO gradients, NO shadows, NO environment, NO scenic elements.
     - Main subject must be perfectly isolated, centered, and clean for apparel printing.
     """
-    full_prompt = master_prompt + "\n\n" + pod_output_instruction
+
+    if is_retry:
+        # Khi retry: KHÔNG thêm lệnh xóa background — khách chỉ muốn sửa 1 chi tiết nhỏ,
+        # không muốn AI rebuild lại toàn bộ bố cục hay xóa background đang có.
+        full_prompt = master_prompt
+    else:
+        # Generate lần đầu: append đầy đủ yêu cầu POD output
+        full_prompt = master_prompt + "\n\n" + pod_output_instruction
 
     # ============================================================
     # LUẬT CHỌN MODEL ĐỘNG THEO YÊU CẦU ĐỔI MỚI
@@ -409,7 +425,7 @@ def call_image_generation(
 
         # Luôn trả về bản preview — tách nền, giữ nguyên resolution gốc
         print("🧼 Processing preview (remove bg)...")
-        img_no_bg = remove_bg_floodfill(img_raw)
+        img_no_bg = remove_bg_floodfill(img_raw, remove_inner_white=not is_retry)
         filename = f"preview_no_bg_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
         img_no_bg.save(os.path.join(output_dir, filename), format="PNG")
         return {"image_url": f"/outputs/{filename}", "error": None}
