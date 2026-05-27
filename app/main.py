@@ -15,7 +15,7 @@ import numpy as np
 import app.config as config
 import app.database as database
 import app.prompts as prompts
-
+import cv2
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
@@ -292,41 +292,54 @@ def _to_base64_url(path: str) -> str | None:
     return None
 
 
-def remove_bg_floodfill(img, remove_inner_white: bool = True):
+def remove_bg_floodfill(img, remove_inner_white: bool = False):
     """
-    Tách nền kết hợp 2 lớp:
-    1. Flood Fill: quét sạch mảng nền lớn bên ngoài (luôn chạy).
-    2. Numpy Mask: đục thủng các "lỗ" màu trắng tinh bị kẹt bên trong.
-       → Chỉ chạy khi remove_inner_white=True (generate lần đầu).
-       → Tắt khi retry vì ảnh đang có background trắng chủ đích (card, border...),
-         đục vào sẽ xóa nhầm chi tiết thiết kế.
+    [BẢN TỐI ƯU OpenCV V2.1 - ĐÃ FIX LỖI KÍCH THƯỚC MASK]
+    Sử dụng kỹ thuật Padded Flood Fill (Bọc viền đổ nước) để đảm bảo 
+    nước len lỏi được vòng quanh ảnh nhưng không xuyên qua nét vẽ.
     """
-    img = img.convert("RGBA")
+    img_array = np.array(img.convert('RGB'))
+    img_cv = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
 
-    temp = img.convert("RGB")
-    ImageDraw.floodfill(temp, xy=(0, 0), value=(255, 0, 255), thresh=30)
+    # 1. Bắt các pixel trắng (nền + chi tiết trong)
+    lower_white = np.array([240, 240, 240], dtype=np.uint8)
+    upper_white = np.array([255, 255, 255], dtype=np.uint8)
+    white_mask = cv2.inRange(img_cv, lower_white, upper_white)
 
-    img_array  = np.array(img)
-    temp_array = np.array(temp)
-
-    outer_bg_mask = (
-        (temp_array[:, :, 0] == 255) &
-        (temp_array[:, :, 1] == 0)   &
-        (temp_array[:, :, 2] == 255)
-    )
-
-    if remove_inner_white:
-        pure_white_mask = (
-            (img_array[:, :, 0] >= 250) &
-            (img_array[:, :, 1] >= 250) &
-            (img_array[:, :, 2] >= 250)
-        )
-        img_array[outer_bg_mask | pure_white_mask, 3] = 0
+    if not remove_inner_white:
+        h, w = white_mask.shape
+        
+        # Đệm thêm 1px viền trắng xung quanh để đảm bảo nước chảy vòng quanh toàn bộ ảnh
+        padded_mask = cv2.copyMakeBorder(white_mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=255)
+        
+        # Tự động lấy kích thước của ảnh đã đệm (padded_h, padded_w)
+        padded_h, padded_w = padded_mask.shape
+        
+        # Tạo mask cho thuật toán FloodFill (Bắt buộc phải to hơn ảnh đang xử lý đúng 2px)
+        flood_mask = np.zeros((padded_h + 2, padded_w + 2), np.uint8)
+        
+        # Đổ màu từ tọa độ (0,0) của ảnh đã đệm. Chỗ nào nước loang tới sẽ đánh dấu = 128
+        cv2.floodFill(padded_mask, flood_mask, (0, 0), 128)
+        
+        # Trích xuất lại phần nền (những chỗ = 128) và cắt bỏ cái viền 1px đệm lúc nãy
+        bg_mask_padded = (padded_mask == 128).astype(np.uint8) * 255
+        bg_mask = bg_mask_padded[1:h+1, 1:w+1]
     else:
-        # Retry mode: chỉ xóa outer background, giữ nguyên mọi chi tiết bên trong
-        img_array[outer_bg_mask, 3] = 0
+        bg_mask = white_mask
 
-    return Image.fromarray(img_array)
+    # 2. XỬ LÝ VIỀN TRẮNG (HALO EFFECT)
+    kernel = np.ones((2, 2), np.uint8)
+    bg_mask = cv2.dilate(bg_mask, kernel, iterations=1)
+
+    # 3. ĐẢO MASK & LÀM MỀM VIỀN (Anti-aliasing)
+    fg_mask = cv2.bitwise_not(bg_mask)
+    fg_mask_smooth = cv2.GaussianBlur(fg_mask, (3, 3), 0)
+
+    # 4. GẮN KÊNH ALPHA TRONG SUỐT
+    img_rgba = cv2.cvtColor(img_cv, cv2.COLOR_BGR2BGRA)
+    img_rgba[:, :, 3] = fg_mask_smooth
+
+    return Image.fromarray(cv2.cvtColor(img_rgba, cv2.COLOR_BGRA2RGBA))
 
 
 def call_image_generation(
@@ -425,8 +438,8 @@ def call_image_generation(
 
         # Luôn trả về bản preview — tách nền, giữ nguyên resolution gốc
         print("🧼 Processing preview (remove bg)...")
-        img_no_bg = remove_bg_floodfill(img_raw, remove_inner_white=not is_retry)
-        filename = f"preview_no_bg_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
+        img_no_bg = remove_bg_floodfill(img_raw, remove_inner_white=False)
+        filename = f"preview_no_bg_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"  
         img_no_bg.save(os.path.join(output_dir, filename), format="PNG")
         return {"image_url": f"/outputs/{filename}", "error": None}
 
@@ -523,6 +536,24 @@ async def home(request: Request):
 async def get_templates():
     """API trả về danh sách các Template để Frontend render giao diện chọn lựa"""
     return JSONResponse(content=TEMPLATES_DATA)
+
+
+# =====================================================================
+# LOAD MOCKUPS (DANH SÁCH SẢN PHẨM XEM THỬ)
+# =====================================================================
+MOCKUPS_FILE = "app/mockups.json"
+MOCKUPS_DATA = []
+try:
+    with open(MOCKUPS_FILE, "r", encoding="utf-8") as f:
+        MOCKUPS_DATA = json.load(f)
+except Exception as e:
+    print(f"Lỗi đọc file mockups: {e}")
+
+
+@app.get("/api/mockups")
+async def get_mockups():
+    """API trả về danh sách sản phẩm mockup để Frontend render trang xem thử"""
+    return JSONResponse(content=MOCKUPS_DATA)
 
 
 @app.post("/chat")

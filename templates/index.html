@@ -797,6 +797,133 @@
           transform: translateY(0px);
         }
       }
+
+      /* ===================== MOCKUP PAGE ===================== */
+      #mockup-page {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #0a0a0a, #1a0033);
+        z-index: 1000;
+        flex-direction: column;
+        align-items: center;
+        overflow-y: auto;
+        padding: 24px 16px 40px;
+      }
+      #mockup-page.active { display: flex; }
+
+      .mockup-header {
+        width: 100%; max-width: 600px;
+        display: flex; align-items: center; gap: 12px;
+        margin-bottom: 20px;
+      }
+      .mockup-back-btn {
+        background: rgba(0,245,212,0.1);
+        border: 1px solid rgba(0,245,212,0.3);
+        color: #00f5d4; padding: 8px 16px;
+        border-radius: 20px; cursor: pointer;
+        font-size: 14px; font-weight: 600; transition: all 0.2s;
+      }
+      .mockup-back-btn:hover { background: rgba(0,245,212,0.2); }
+      .mockup-header h2 {
+        font-family: "Space Grotesk", sans-serif; font-size: 18px;
+        background: linear-gradient(90deg, #00f5d4, #ff00cc);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      }
+
+      /* Khu vực Hiển thị chính (Preview lớn) */
+      .mockup-preview-section {
+        width: 100%; max-width: 500px;
+        background: #1a1a2e; border: 1px solid rgba(0,245,212,0.2);
+        border-radius: 20px; padding: 20px;
+        display: flex; flex-direction: column; align-items: center; gap: 16px;
+        margin-bottom: 24px;
+      }
+      
+      /* Cấu trúc 3 Layer khớp với Canvas render */
+      .mockup-preview-wrap { 
+        position: relative; 
+        width: 100%; 
+        max-width: 400px; 
+        aspect-ratio: 1/1;
+        background-color: transparent !important; /* Bắt buộc trong suốt để không bị viền vuông */
+      }
+      
+      /* Lớp 1: Khối màu bị cắt xén theo hình dáng sản phẩm nhờ Mask */
+      .preview-color-layer {
+        display: block; /* BẬT LẠI LỚP NÀY */
+        position: absolute; 
+        inset: 0;
+        background-color: transparent;
+        -webkit-mask-size: contain;
+        -webkit-mask-position: center;
+        -webkit-mask-repeat: no-repeat;
+        mask-size: contain;
+        mask-position: center;
+        mask-repeat: no-repeat;
+        z-index: 1;
+      }
+      
+      /* Lớp 2: Áo trắng gốc, dùng multiply để lấy nếp gấp */
+      img.preview-base { 
+        position: absolute; 
+        inset: 0; 
+        width: 100%; 
+        height: 100%; 
+        object-fit: contain; 
+        mix-blend-mode: multiply; 
+        pointer-events: none;
+        z-index: 2;
+      }
+      
+      /* Lớp 3: Hình Design AI */
+      img.preview-design { 
+        position: absolute; 
+        object-fit: contain; 
+        pointer-events: none; 
+        z-index: 3;
+      }
+
+      /* Bảng chọn màu sắc */
+      .mockup-color-picker {
+        display: flex; gap: 12px; justify-content: center;
+        padding: 10px; background: rgba(0,0,0,0.3); border-radius: 30px;
+      }
+      .color-swatch {
+        width: 32px; height: 32px; border-radius: 50%;
+        cursor: pointer; border: 2px solid #444;
+        transition: all 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      }
+      .color-swatch:hover { transform: scale(1.1); }
+      .color-swatch.active { border-color: #00f5d4; transform: scale(1.15); box-shadow: 0 0 10px rgba(0,245,212,0.5); }
+
+      /* Bảng chọn loại sản phẩm */
+      .mockup-products-grid {
+        width: 100%; max-width: 600px;
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+        margin-bottom: 20px;
+      }
+      @media (max-width: 500px) {
+        .mockup-products-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      .mockup-product-card {
+        background: #111; border: 1px solid #333;
+        border-radius: 16px; padding: 12px 8px; cursor: pointer;
+        transition: all 0.25s; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      }
+      .mockup-product-card:hover, .mockup-product-card.selected {
+        border-color: #00f5d4; background: rgba(0,245,212,0.05);
+        transform: translateY(-2px);
+      }
+      .mockup-product-card span { font-size: 13px; font-weight: 500; text-align: center; color: #ccc; }
+
+      .mockup-download-btn {
+        background: linear-gradient(135deg, #00f5d4, #ff00cc);
+        color: #000; font-weight: 700; font-size: 14px; width: 100%; max-width: 400px;
+        padding: 14px 28px; border-radius: 24px; border: none;
+        cursor: pointer; text-decoration: none; display: inline-block; text-align: center;
+      }
+      /* ===================== END MOCKUP PAGE ===================== */
     </style>
   </head>
   <body>
@@ -2132,6 +2259,9 @@
                         <button class="render-btn" style="width: 100%; background: linear-gradient(135deg, #00f5d4, #00c4a8);" onclick="triggerFinalRender(this, '${encodedPrompt}', '${data.image_url}')">
                             ✅ Chốt ảnh này & Tạo bản in nét (Final Render)
                         </button>
+                        <button class="render-btn" style="width: 100%; background: linear-gradient(135deg, #ff00cc, #7b00ff);" onclick="openMockupPage('${data.image_url}')">
+                            👕 Xem thử trên sản phẩm
+                        </button>
                         <button class="btn-trigger-survey" style="width: 100%; justify-content: center; font-weight: 600; margin-top: 0;" onclick="openRetryModal()">
                             🔄 Không ưng, chọn ảnh sửa lại (Retry)
                         </button>
@@ -2187,9 +2317,14 @@
                         🎉 Xong rồi! Đây là bản Final độ nét cao (4500x5400, 300 DPI) sẵn sàng để in áo của cậu nè!
                     </div>
                     <img src="${data.image_url}" class="msg-image" alt="Final Generated" style="margin-bottom: 8px; border: 2px solid #ff00cc;">
-                    <a href="${data.image_url}" download="BestiePOD_Final_Design.png" class="render-btn" style="display: block; text-align: center; text-decoration: none; margin-top: 8px;">
-                        ⬇️ Tải ảnh chuẩn in về máy
-                    </a>
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+                        <a href="${data.image_url}" download="BestiePOD_Final_Design.png" class="render-btn" style="display:block; text-align:center; text-decoration:none;">
+                            ⬇️ Tải ảnh chuẩn in về máy
+                        </a>
+                        <button class="render-btn" style="width:100%; background:linear-gradient(135deg,#ff00cc,#7b00ff);" onclick="openMockupPage('${data.image_url}')">
+                            👕 Xem thử trên sản phẩm
+                        </button>
+                    </div>
                 </div>
             `;
             messagesContainer.appendChild(wrapper);
@@ -2416,6 +2551,220 @@
           console.error("Lỗi tải templates:", e);
         }
       };
+
+      // ===================== MOCKUP PAGE LOGIC =====================
+      let MOCKUP_PRODUCTS = [];
+      let currentMockupDesignUrl = null;
+      let activeProduct = null;
+      let activeColorVariant = null;
+
+      async function loadMockupProducts() {
+        if (MOCKUP_PRODUCTS.length > 0) return;
+        try {
+          const res = await fetch("/api/mockups");
+          MOCKUP_PRODUCTS = await res.json();
+        } catch (e) {
+          console.error("Lỗi tải mockups.json:", e);
+        }
+      }
+
+      async function openMockupPage(designUrl) {
+        currentMockupDesignUrl = designUrl;
+        await loadMockupProducts();
+        
+        document.getElementById("mockup-page").classList.add("active");
+        
+        // Render lưới sản phẩm bên dưới
+        renderMockupProductsGrid();
+        
+        // Chọn mặc định sản phẩm đầu tiên
+        if (MOCKUP_PRODUCTS.length > 0) {
+          selectMockupProduct(MOCKUP_PRODUCTS[0]);
+        }
+        window.scrollTo(0, 0);
+      }
+
+      function closeMockupPage() {
+        document.getElementById("mockup-page").classList.remove("active");
+      }
+
+      // Render danh sách icon sản phẩm
+      function renderMockupProductsGrid() {
+        const grid = document.getElementById("mockup-grid");
+        grid.innerHTML = "";
+        MOCKUP_PRODUCTS.forEach(product => {
+          const card = document.createElement("div");
+          card.className = "mockup-product-card";
+          card.id = "prod-card-" + product.id;
+          card.onclick = () => selectMockupProduct(product);
+          card.innerHTML = `
+            <span style="font-size: 28px;">${product.emoji}</span>
+            <span>${product.name}</span>
+          `;
+          grid.appendChild(card);
+        });
+      }
+
+      // Khi bấm chọn Sản Phẩm
+      function selectMockupProduct(product) {
+        activeProduct = product;
+        
+        // Đổi UI trạng thái selected
+        document.querySelectorAll(".mockup-product-card").forEach(c => c.classList.remove("selected"));
+        document.getElementById("prod-card-" + product.id).classList.add("selected");
+
+        // Đổi tiêu đề
+        document.getElementById("mockup-preview-title").textContent = product.emoji + " " + product.name;
+
+        // Tự động chọn màu đầu tiên của sản phẩm này
+        if (product.colors && product.colors.length > 0) {
+          selectMockupColor(product.colors[0]);
+        }
+        
+        // Render bảng chọn màu tương ứng
+        renderColorPicker(product);
+      }
+
+      // Render các cục tròn chọn màu sắc
+      function renderColorPicker(product) {
+        const picker = document.getElementById("mockup-color-picker");
+        picker.innerHTML = "";
+        
+        if (!product.colors || product.colors.length <= 1) {
+          picker.style.display = "none";
+          return;
+        }
+        
+        picker.style.display = "flex";
+        product.colors.forEach((color, index) => {
+          const swatch = document.createElement("div");
+          swatch.className = "color-swatch";
+          swatch.id = "swatch-" + color.id;
+          swatch.style.backgroundColor = color.hex;
+          swatch.title = color.name;
+          
+          if (activeColorVariant && activeColorVariant.id === color.id) {
+            swatch.classList.add("active");
+          }
+
+          swatch.onclick = () => {
+            document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
+            swatch.classList.add("active");
+            selectMockupColor(color);
+          };
+          picker.appendChild(swatch);
+        });
+      }
+
+      // Xử lý khi chọn Màu sắc cụ thể
+      // Xử lý khi chọn Màu sắc cụ thể
+      function selectMockupColor(colorVariant) {
+        activeColorVariant = colorVariant;
+        
+        // 1. KHÔI PHỤC MASK: Set màu và hình dáng cắt viền (mask) cho lớp màu
+        const colorLayer = document.getElementById("mockup-color-layer");
+        colorLayer.style.backgroundColor = colorVariant.hex;
+        colorLayer.style.webkitMaskImage = `url('${activeProduct.base}')`;
+        colorLayer.style.maskImage = `url('${activeProduct.base}')`;
+
+        // Đảm bảo wrapper bên ngoài trong suốt, không bị ám khối vuông
+        const wrap = document.getElementById("mockup-preview-wrap");
+        wrap.style.backgroundColor = "transparent";
+
+        // 2. Cập nhật Lớp Áo gốc
+        const baseEl = document.getElementById("mockup-preview-base");
+        baseEl.src = activeProduct.base;
+
+        // 3. Định vị Lớp Design (Cập nhật tọa độ linh hoạt theo từng sản phẩm)
+        const designEl = document.getElementById("mockup-preview-design");
+        designEl.src = currentMockupDesignUrl;
+        designEl.style.top = activeProduct.printArea.top;
+        designEl.style.left = activeProduct.printArea.left;
+        designEl.style.width = activeProduct.printArea.width;
+        designEl.style.height = activeProduct.printArea.height;
+
+        // Trích xuất file tải xuống
+        renderMockupToCanvas(activeProduct, colorVariant, (dataUrl) => {
+          const dlBtn = document.getElementById("mockup-download-btn");
+          dlBtn.href = dataUrl;
+          dlBtn.download = `BestiePOD_${activeProduct.id}_${colorVariant.id}.png`;
+        });
+      }
+
+      // Mô phỏng lại cơ chế 3 Layer trên Canvas để khách tải xuống
+      function renderMockupToCanvas(product, colorVariant, callback) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 800; canvas.height = 800;
+        const ctx = canvas.getContext("2d");
+        
+        const baseImg = new Image();
+        baseImg.crossOrigin = "anonymous";
+        baseImg.onload = function() {
+          // BƯỚC 1: Đổ màu trơn toàn Canvas theo mã HEX
+          ctx.fillStyle = colorVariant.hex;
+          ctx.fillRect(0, 0, 800, 800);
+          
+          // BƯỚC 2: Cắt phần màu dư thừa, chỉ giữ lại khối màu theo hình dáng áo
+          ctx.globalCompositeOperation = 'destination-in';
+          ctx.drawImage(baseImg, 0, 0, 800, 800);
+          
+          // BƯỚC 3: Đè hình cái áo trắng lên trên, dùng multiply để lấy nếp gấp/shadow
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.drawImage(baseImg, 0, 0, 800, 800);
+          
+          // BƯỚC 4: Cuối cùng vẽ hình Design AI lên
+          const designImg = new Image();
+          designImg.crossOrigin = "anonymous";
+          designImg.onload = function() {
+            const p = v => parseFloat(v) / 100;
+            const top  = p(product.printArea.top)    * 800;
+            const left = p(product.printArea.left)   * 800;
+            const w    = p(product.printArea.width)  * 800;
+            const h    = p(product.printArea.height) * 800;
+            
+            ctx.globalCompositeOperation = "source-over"; // Chế độ in đè bình thường
+            ctx.drawImage(designImg, left, top, w, h);
+            
+            callback(canvas.toDataURL("image/png"));
+          };
+          designImg.onerror = () => callback(canvas.toDataURL("image/png"));
+          designImg.src = currentMockupDesignUrl;
+        };
+        baseImg.onerror = () => callback(canvas.toDataURL("image/png"));
+        baseImg.src = product.base;
+      }
+      // ===================== END MOCKUP PAGE LOGIC =====================
+
     </script>
-  </body>
+  
+  <!-- ==================== MOCKUP PAGE ==================== -->
+  <div id="mockup-page">
+    <div class="mockup-header">
+      <button class="mockup-back-btn" onclick="closeMockupPage()">← Quay lại</button>
+      <h2>👕 Xem thử thiết kế</h2>
+    </div>
+
+    <div class="mockup-preview-section" id="mockup-preview-section">
+      <h3 id="mockup-preview-title" style="font-size: 16px; color: #00f5d4;">Đang tải...</h3>
+      
+      <div class="mockup-preview-wrap" id="mockup-preview-wrap">
+        <div class="preview-color-layer" id="mockup-color-layer"></div>
+        
+        <img class="preview-base" id="mockup-preview-base" src="" alt="">
+        
+        <img class="preview-design" id="mockup-preview-design" src="" alt="">
+      </div>
+
+      <div class="mockup-color-picker" id="mockup-color-picker"></div>
+
+      <a class="mockup-download-btn" id="mockup-download-btn" href="#" download="BestiePOD_Mockup.png">
+        ⬇️ Tải ảnh Mockup nét căng về máy
+      </a>
+    </div>
+
+    <h4 style="margin-bottom: 12px; width: 100%; max-width: 600px; font-size: 14px; color: #aaa;">Đổi sang sản phẩm khác:</h4>
+    <div class="mockup-products-grid" id="mockup-grid"></div>
+  </div>
+  <!-- ==================== END MOCKUP PAGE ==================== -->
+</body>
 </html>
