@@ -11,11 +11,10 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime
-import numpy as np
 import app.config as config
 import app.database as database
 import app.prompts as prompts
-import cv2
+
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
@@ -23,8 +22,10 @@ os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 # ==================== PROJECT ROOT ====================
 import pathlib
+
 _PROJECT_ROOT = str(pathlib.Path(__file__).parent.parent.absolute())
 print(f"✅ PROJECT_ROOT initialized: {_PROJECT_ROOT}")
+
 
 # =====================================================================
 # HÀM MÃ HÓA ẢNH NỘI BỘ THÀNH BASE64 (ĐỂ AI ĐỌC ĐƯỢC)
@@ -76,6 +77,7 @@ except Exception as e:
 _CACHED_DATE_STR = None
 _BASE_SYSTEM_PROMPT = None
 
+
 def _get_base_system_prompt() -> str:
     """
     Trả về base system prompt (SYSTEM_PROMPT + KNOWLEDGE_DATA).
@@ -113,26 +115,27 @@ def call_conversation_api(
       → đặt cuối để không phá cache của prefix phía trước
     """
     import hashlib
+
     last_entities = database.get_last_entities(session_id)
-    history       = database.get_history(session_id)        # list [user, asst, user, asst, ...]
+    history = database.get_history(session_id)  # list [user, asst, user, asst, ...]
 
     # =====================================================================
     # LAYER 1 — TUYỆT ĐỐI TĨNH → rebuild 1 lần/ngày
     # =====================================================================
-    messages = [
-        {"role": "system", "content": _get_base_system_prompt()}
-    ]
+    messages = [{"role": "system", "content": _get_base_system_prompt()}]
 
     # =====================================================================
     # LAYER 2 — BÁN TĨNH → template rule (tách riêng để L1 không bị phá)
     # =====================================================================
     if template_id and template_id in TEMPLATES_DATA:
         rule = TEMPLATES_DATA[template_id].get("master_prompt_rule", "")
-        messages.append({
-            "role": "system",
-            # THÊM TEMPLATE_ID VÀO ĐÂY ĐỂ AI NHẬN DIỆN:
-            "content": f"### [ACTIVE TEMPLATE RULE: {template_id}]\n{rule}" 
-        })
+        messages.append(
+            {
+                "role": "system",
+                # THÊM TEMPLATE_ID VÀO ĐÂY ĐỂ AI NHẬN DIỆN:
+                "content": f"### [ACTIVE TEMPLATE RULE: {template_id}]\n{rule}",
+            }
+        )
 
     # =====================================================================
     # LAYER 3 — LỊCH SỬ HỘI THOẠI → append toàn bộ user+assistant cũ
@@ -156,27 +159,35 @@ def call_conversation_api(
     if image_base64_list and isinstance(image_base64_list, list):
         for idx, img_b64 in enumerate(image_base64_list):
             valid_b64_url = get_valid_image_url(img_b64)
-            
+
             # Logic phân loại nhãn động theo từng template
             if template_id == "multi_subject_merge":
                 # Nhãn dành riêng cho template ghép ảnh (hỗ trợ tới 3 chủ thể đồng cấp)
                 label = f"[ẢNH {idx + 1} - CHỦ THỂ SỐ {idx + 1} (SUBJECT {idx + 1})]:"
             elif template_id and len(image_base64_list) == 2:
                 # Nhãn cho các template thông thường (1 Chủ thể + 1 Style)
-                label = "[ẢNH 1 - CHỦ THỂ (MAIN SUBJECT)]:" if idx == 0 else "[ẢNH 2 - MẪU STYLE (STYLE REFERENCE)]:"
+                label = (
+                    "[ẢNH 1 - CHỦ THỂ (MAIN SUBJECT)]:"
+                    if idx == 0
+                    else "[ẢNH 2 - MẪU STYLE (STYLE REFERENCE)]:"
+                )
             else:
                 # Nhãn mặc định khi khách chat tự do
                 label = f"[Ảnh {idx + 1} do khách gửi]:"
-                
+
             user_content.append({"type": "text", "text": label})
-            user_content.append({"type": "image_url", "image_url": {"url": valid_b64_url}})
+            user_content.append(
+                {"type": "image_url", "image_url": {"url": valid_b64_url}}
+            )
 
     if last_generated_image_url:
         valid_b64_url = get_valid_image_url(last_generated_image_url)
-        user_content.append({
-            "type": "text",
-            "text": "[SYSTEM Context]: This is the design you generated in the previous turn. Use this as the primary visual context for requested edits."
-        })
+        user_content.append(
+            {
+                "type": "text",
+                "text": "[SYSTEM Context]: This is the design you generated in the previous turn. Use this as the primary visual context for requested edits.",
+            }
+        )
         user_content.append({"type": "image_url", "image_url": {"url": valid_b64_url}})
 
     messages.append({"role": "user", "content": user_content})
@@ -186,13 +197,15 @@ def call_conversation_api(
     # entities thay đổi mỗi lượt — nằm sau prefix nên không phá cache.
     if last_entities and any(v is not None for v in last_entities.values()):
         entities_str = json.dumps(last_entities, ensure_ascii=False)
-        messages.append({
-            "role": "system",
-            "content": (
-                f"[SYSTEM MEMORY]: Previously confirmed data: {entities_str}. "
-                f"You MUST maintain these non-null values in your new JSON response."
-            )
-        })
+        messages.append(
+            {
+                "role": "system",
+                "content": (
+                    f"[SYSTEM MEMORY]: Previously confirmed data: {entities_str}. "
+                    f"You MUST maintain these non-null values in your new JSON response."
+                ),
+            }
+        )
 
     # ==================== HEADER & PAYLOAD ====================
     headers = {
@@ -231,7 +244,7 @@ def call_conversation_api(
             f"{config.XAI_BASE_URL}/chat/completions",
             headers=headers,
             json=payload,
-            timeout=120
+            timeout=120,
         )
 
         if response.status_code != 200:
@@ -242,13 +255,13 @@ def call_conversation_api(
 
         # ── Log caching ──
         usage = res_data.get("usage", {})
-        total_tokens  = usage.get("prompt_tokens", 0)
+        total_tokens = usage.get("prompt_tokens", 0)
         cached_tokens = usage.get("prompt_tokens_details", {}).get("cached_tokens", 0)
 
         if total_tokens > 0:
             hit_rate = (cached_tokens / total_tokens) * 100
-            billed   = total_tokens - cached_tokens
-            status   = "🔥" if hit_rate >= 70 else ("⚡" if hit_rate >= 30 else "❄️")
+            billed = total_tokens - cached_tokens
+            status = "🔥" if hit_rate >= 70 else ("⚡" if hit_rate >= 30 else "❄️")
             print(
                 f"{status} [Cache] Total: {total_tokens:,} | "
                 f"Cached: {cached_tokens:,} ({hit_rate:.1f}%) | "
@@ -256,15 +269,15 @@ def call_conversation_api(
             )
 
         raw_text = res_data["choices"][0]["message"]["content"]
-        ai_json  = json.loads(raw_text)
+        ai_json = json.loads(raw_text)
 
         # ── Lưu session: entities + append cặp (user, assistant) vào history ──
         database.update_session_data(
-            session_id   = session_id,
-            response_id  = res_data.get("id"),
-            entities     = ai_json.get("entities_extracted"),
-            new_user_msg = user_content,   # list (giữ nguyên format có ảnh)
-            new_assistant_text = raw_text, # chuỗi JSON gốc
+            session_id=session_id,
+            response_id=res_data.get("id"),
+            entities=ai_json.get("entities_extracted"),
+            new_user_msg=user_content,  # list (giữ nguyên format có ảnh)
+            new_assistant_text=raw_text,  # chuỗi JSON gốc
         )
 
         return ai_json
@@ -290,56 +303,6 @@ def _to_base64_url(path: str) -> str | None:
             encoded = base64.b64encode(f.read()).decode("utf-8")
         return f"data:{mime};base64,{encoded}"
     return None
-
-
-def remove_bg_floodfill(img, remove_inner_white: bool = False):
-    """
-    [BẢN TỐI ƯU OpenCV V2.1 - ĐÃ FIX LỖI KÍCH THƯỚC MASK]
-    Sử dụng kỹ thuật Padded Flood Fill (Bọc viền đổ nước) để đảm bảo 
-    nước len lỏi được vòng quanh ảnh nhưng không xuyên qua nét vẽ.
-    """
-    img_array = np.array(img.convert('RGB'))
-    img_cv = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-
-    # 1. Bắt các pixel trắng (nền + chi tiết trong)
-    lower_white = np.array([240, 240, 240], dtype=np.uint8)
-    upper_white = np.array([255, 255, 255], dtype=np.uint8)
-    white_mask = cv2.inRange(img_cv, lower_white, upper_white)
-
-    if not remove_inner_white:
-        h, w = white_mask.shape
-        
-        # Đệm thêm 1px viền trắng xung quanh để đảm bảo nước chảy vòng quanh toàn bộ ảnh
-        padded_mask = cv2.copyMakeBorder(white_mask, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=255)
-        
-        # Tự động lấy kích thước của ảnh đã đệm (padded_h, padded_w)
-        padded_h, padded_w = padded_mask.shape
-        
-        # Tạo mask cho thuật toán FloodFill (Bắt buộc phải to hơn ảnh đang xử lý đúng 2px)
-        flood_mask = np.zeros((padded_h + 2, padded_w + 2), np.uint8)
-        
-        # Đổ màu từ tọa độ (0,0) của ảnh đã đệm. Chỗ nào nước loang tới sẽ đánh dấu = 128
-        cv2.floodFill(padded_mask, flood_mask, (0, 0), 128)
-        
-        # Trích xuất lại phần nền (những chỗ = 128) và cắt bỏ cái viền 1px đệm lúc nãy
-        bg_mask_padded = (padded_mask == 128).astype(np.uint8) * 255
-        bg_mask = bg_mask_padded[1:h+1, 1:w+1]
-    else:
-        bg_mask = white_mask
-
-    # 2. XỬ LÝ VIỀN TRẮNG (HALO EFFECT)
-    kernel = np.ones((2, 2), np.uint8)
-    bg_mask = cv2.dilate(bg_mask, kernel, iterations=1)
-
-    # 3. ĐẢO MASK & LÀM MỀM VIỀN (Anti-aliasing)
-    fg_mask = cv2.bitwise_not(bg_mask)
-    fg_mask_smooth = cv2.GaussianBlur(fg_mask, (3, 3), 0)
-
-    # 4. GẮN KÊNH ALPHA TRONG SUỐT
-    img_rgba = cv2.cvtColor(img_cv, cv2.COLOR_BGR2BGRA)
-    img_rgba[:, :, 3] = fg_mask_smooth
-
-    return Image.fromarray(cv2.cvtColor(img_rgba, cv2.COLOR_BGRA2RGBA))
 
 
 def call_image_generation(
@@ -379,15 +342,14 @@ def call_image_generation(
     try:
         # 1. CHẾ ĐỘ CÓ ẢNH THAM CHIẾU (Image-to-Image / Multi-Image Editing)
         if reference_images and len(reference_images) > 0:
-            print(f"🖼️ Using Grok Imagine Edits (is_retry={is_retry}) | Model: {selected_model}")
+            print(
+                f"🖼️ Using Grok Imagine Edits (is_retry={is_retry}) | Model: {selected_model}"
+            )
 
             image_payloads = []
             for img in reference_images[:3]:
                 img_input = _to_base64_url(img) or img
-                image_payloads.append({
-                    "type": "image_url",
-                    "url": img_input
-                })
+                image_payloads.append({"type": "image_url", "url": img_input})
 
             response = requests.post(
                 f"{config.XAI_BASE_URL}/images/edits",
@@ -406,7 +368,9 @@ def call_image_generation(
 
         # 2. CHẾ ĐỘ SINH ẢNH MỚI HOÀN TOÀN TỪ CHỮ (Text-to-Image)
         else:
-            print(f"✨ Using Grok Imagine Generations (is_retry={is_retry}) | Model: {selected_model}")
+            print(
+                f"✨ Using Grok Imagine Generations (is_retry={is_retry}) | Model: {selected_model}"
+            )
             response = requests.post(
                 f"{config.XAI_BASE_URL}/images/generations",
                 headers={
@@ -432,17 +396,18 @@ def call_image_generation(
             img_bytes = requests.get(img_data["url"], timeout=60).content
             img_raw = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
         elif "b64_json" in img_data:
-            img_raw = Image.open(io.BytesIO(base64.b64decode(img_data["b64_json"]))).convert("RGBA")
+            img_raw = Image.open(
+                io.BytesIO(base64.b64decode(img_data["b64_json"]))
+            ).convert("RGBA")
         else:
             raise Exception("No image returned from API")
 
-        # Luôn trả về bản preview — tách nền, giữ nguyên resolution gốc
-        print("🧼 Processing preview (remove bg)...")
-        img_no_bg = remove_bg_floodfill(img_raw, remove_inner_white=False)
-        filename = f"preview_no_bg_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"  
-        img_no_bg.save(os.path.join(output_dir, filename), format="PNG")
+        print("👕 Compositing generated image onto mockup...")
+        # Trả về ảnh gốc nguyên bản chất lượng cao từ Grok
+        print("💾 Saving raw image from Grok...")
+        filename = f"preview_raw_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
+        img_raw.save(os.path.join(output_dir, filename), format="PNG")
         return {"image_url": f"/outputs/{filename}", "error": None}
-
     except Exception as e:
         print(f"❌ call_image_generation Exception: {e}")
         return {"image_url": None, "error": str(e)}
@@ -464,7 +429,10 @@ def finalize_image(preview_image_url: str):
         if preview_image_url.startswith("/outputs/"):
             file_path = os.path.join(_PROJECT_ROOT, preview_image_url.lstrip("/"))
         else:
-            return {"image_url": None, "error": "Invalid preview_image_url — must be an /outputs/ path"}
+            return {
+                "image_url": None,
+                "error": "Invalid preview_image_url — must be an /outputs/ path",
+            }
 
         if not os.path.exists(file_path):
             return {"image_url": None, "error": f"Preview file not found: {file_path}"}
@@ -482,8 +450,8 @@ def finalize_image(preview_image_url: str):
         # ── BƯỚC 2: Upscale RGB lên canvas target bằng LANCZOS ──────────────────
         # Tính kích thước mới giữ nguyên aspect ratio, vừa trong 85% canvas
         target_w, target_h = 4500, 5400
-        max_w = int(target_w * 0.85)   # 3825
-        max_h = int(target_h * 0.85)   # 4590
+        max_w = int(target_w * 0.85)  # 3825
+        max_h = int(target_h * 0.85)  # 4590
         aspect = img.width / img.height
         if aspect > (max_w / max_h):
             new_w = max_w
@@ -498,7 +466,9 @@ def finalize_image(preview_image_url: str):
         # ── BƯỚC 3: Sharpen RGB sau upscale để bù độ mờ do kéo giãn ────────────
         # UnsharpMask: radius=2 là vùng blur so sánh, percent=150 là cường độ,
         # threshold=3 là ngưỡng pixel tối thiểu để áp dụng (tránh noise)
-        rgb_sharp = rgb_resized.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+        rgb_sharp = rgb_resized.filter(
+            ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3)
+        )
 
         # ── BƯỚC 4: Ghép lại RGBA và paste vào canvas trắng trong suốt ──────────
         img_final_subject = Image.merge("RGBA", (*rgb_sharp.split(), alpha_resized))
@@ -573,7 +543,7 @@ async def chat_endpoint(request: Request):
         user_input, session_id, image_list, last_gen_url, template_id
     )
 
-    if not ai_response: 
+    if not ai_response:
         return JSONResponse(
             content={
                 "user_reply": "Oops, my network is lagging a bit! Could you resend that? 😅"
@@ -602,6 +572,75 @@ async def generate_image_endpoint(request: Request):
     return JSONResponse(content=img_res)
 
 
+@app.post("/retry-image")
+async def retry_image_endpoint(request: Request):
+    """
+    Endpoint retry ảnh — đọc lại toàn bộ luật trong SYSTEM_PROMPT trước.
+    Flow:
+      1. Gửi yêu cầu sửa + ảnh preview hiện tại vào call_conversation_api
+         → AI đọc luật, hiểu context, tạo ra master_prompt mới
+      2. Dùng master_prompt mới + ảnh preview làm reference → gọi /images/edits
+    """
+    data = await request.json()
+    retry_instruction = data.get("retry_instruction")  # Yêu cầu sửa của khách
+    preview_image_url = data.get("preview_image_url")  # URL ảnh preview hiện tại
+    session_id = data.get("session_id")
+    template_id = data.get("template_id")
+
+    if not retry_instruction:
+        return JSONResponse(
+            content={"error": "Missing retry_instruction"}, status_code=400
+        )
+    if not preview_image_url:
+        return JSONResponse(
+            content={"error": "Missing preview_image_url"}, status_code=400
+        )
+
+    # ── BƯỚC 1: Đọc ảnh preview từ disk, convert sang base64 để gửi cho AI ──
+    preview_b64 = None
+    if preview_image_url.startswith("/outputs/"):
+        file_path = os.path.join(_PROJECT_ROOT, preview_image_url.lstrip("/"))
+        if os.path.exists(file_path):
+            import base64 as _b64
+
+            with open(file_path, "rb") as f:
+                preview_b64 = (
+                    "data:image/png;base64," + _b64.b64encode(f.read()).decode()
+                )
+
+    # ── BƯỚC 2: Gọi conversation API — AI đọc luật + ảnh + yêu cầu sửa
+    #    → sinh ra master_prompt mới đã tuân thủ đầy đủ bộ luật ──────────────
+    ai_response = call_conversation_api(
+        user_message=(
+            f"[EDIT REQUEST]: {retry_instruction}\n\n"
+            f"[INSTRUCTION]: Based on the current design image I'm sending, "
+            f"please apply the edit request above while strictly following ALL design rules. "
+            f"Generate a new `master_prompt` in `is_ready_to_render: true` state."
+        ),
+        session_id=session_id or f"retry_{int(time.time())}",
+        image_base64_list=[preview_b64] if preview_b64 else None,
+        last_generated_image_url=None,
+        template_id=template_id,
+    )
+
+    if not ai_response or not ai_response.get("master_prompt"):
+        return JSONResponse(
+            content={"error": "AI failed to generate a revised master_prompt"},
+            status_code=500,
+        )
+
+    revised_prompt = ai_response["master_prompt"]
+    print(f"✏️ Retry — revised master_prompt từ AI:\n{revised_prompt[:300]}...")
+
+    # ── BƯỚC 3: Gọi image edit với master_prompt mới + ảnh preview làm reference ──
+    img_res = call_image_generation(
+        master_prompt=revised_prompt,
+        reference_images=[preview_image_url],
+        is_retry=True,
+    )
+    return JSONResponse(content=img_res)
+
+
 @app.post("/finalize-image")
 async def finalize_image_endpoint(request: Request):
     """
@@ -613,7 +652,9 @@ async def finalize_image_endpoint(request: Request):
     preview_image_url = data.get("preview_image_url")
 
     if not preview_image_url:
-        return JSONResponse(content={"error": "Missing preview_image_url"}, status_code=400)
+        return JSONResponse(
+            content={"error": "Missing preview_image_url"}, status_code=400
+        )
 
     img_res = finalize_image(preview_image_url)
     return JSONResponse(content=img_res)

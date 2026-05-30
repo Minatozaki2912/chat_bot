@@ -3,14 +3,14 @@
     "id": "tshirt",
     "name": "Áo thun Classic",
     "emoji": "👕",
-    "base": "https://i.postimg.cc/65RdRrHj/aothuntrang.png",
+    "base": "https://i.postimg.cc/WzQSDs6c/aothuntrang.png",
     "printArea": { "top": "32%", "left": "32%", "width": "36%", "height": "36%" },
     "colors": [
       { "id": "white", "name": "Trắng", "hex": "#FFFFFF" },
       { "id": "black", "name": "Đen", "hex": "#1a1a1a" },
       { "id": "pink", "name": "Hồng nhạt", "hex": "#FFC0CB" },
       { "id": "navy", "name": "Xanh Navy", "hex": "#182030" },
-      { "id": "sand", "name": "Cát", "hex": "#C2B280" }
+      { "id": "sand", "name": "Cát", "hex": "#C2B280" } 
     ]
   },
   {
