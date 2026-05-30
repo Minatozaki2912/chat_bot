@@ -2276,17 +2276,24 @@
           return;
         }
 
-        let finalMessage = isMultiMerge
-          ? "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Hãy tự động chọn 1 phong cách vẽ (Style) phù hợp nhất để vẽ lại tất cả nhân vật cho đồng nhất và Proceed to Step 3 (is_ready_to_render: true) ngay lập tức!"
-          : "Mình muốn mix ảnh theo Template!";
-
-        // Đọc quote từ input — áp dụng cho tất cả loại template
+        let finalMessage = "Mình muốn mix ảnh theo Template!";
         const noteInput = document.getElementById(`tpl-note-${templateId}`);
         const note = noteInput ? noteInput.value.trim() : "";
-        if (note) {
-          finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
+
+        if (isMultiMerge) {
+            finalMessage = "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
+            if (note) {
+                finalMessage += `\n[USER REQUEST - STYLE, POSE & QUOTE]: "${note}". \n[INSTRUCTION]: Hãy đọc yêu cầu này. Nếu khách có chỉ định style và dáng đứng, hãy áp dụng. NẾU khách có gõ kèm một câu quote cụ thể, hãy dùng nó. NẾU KHÔNG CÓ QUOTE CỤ THỂ, bạn BẮT BUỘC phải tự động sáng tạo ra 1 câu quote ngắn gọn, hài hước hoặc ý nghĩa dựa trên các nhân vật và style, sau đó đưa vào in lên áo!`;
+            } else {
+                finalMessage += `\n[USER REQUEST]: (Để trống). \n[INSTRUCTION]: Khách không nhập gì cả. Bạn hãy TỰ ĐỘNG chọn Style, dáng đứng phù hợp nhất. ĐỒNG THỜI, BẮT BUỘC phải tự động sáng tạo ra 1 câu quote (chữ) thật ngầu hoặc dễ thương phù hợp với các nhân vật để in lên áo!`;
+            }
         } else {
-          finalMessage += `\nKhông cần in chữ lên áo (NO_TEXT).`;
+            // Logic cũ cho các template khác
+            if (note) {
+                finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
+            } else {
+                finalMessage += `\nKhông cần in chữ lên áo (NO_TEXT).`;
+            }
         }
 
         const zone = document.getElementById(`tpl-zone-${templateId}`);

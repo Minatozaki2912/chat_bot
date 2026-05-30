@@ -448,10 +448,8 @@ You MUST analyze the context to choose EXACTLY 1 OF THE 3 FORMULAS below. [DEATH
 - EXACT ASSEMBLY STRUCTURE:
   1. [TEMPLATE INSTRUCTIONS]: "System Rule: " + (Copy the exact Template rule verbatim).
   2. [SUBJECTS IDENTITY]: MANDATORY to objectively and EXTREMELY METICULOUSLY describe the facial features, skin tone, hairstyle, and clothing of ALL subjects present in Image 1, Image 2 (and Image 3 if applicable). E.g., "Subject 1: ... Subject 2: ...". [PROHIBITION COMMAND]: ABSOLUTELY IGNORE their original poses and background contexts.
-  3. [STYLE & POSE - AUTO SELECT]: Choose a cohesive, high-quality art style automatically (e.g., clean vector illustration, flat comic ink, or matching the subjects' original vibe) to unify all subjects. Place them together in a natural group pose. DO NOT wait for survey answers. E.g., "Render all subjects in a cohesive, vibrant vector art style. They are posing together dynamically in a unified scene."
-  4. [TYPOGRAPHY]:
-     + IF the user has finalized a printed quote: -> "Seamlessly integrated typography text reading: '[TEXT CONTENT]'. The font style, colors, and text effects MUST perfectly match the artistic medium."
-     + IF the user does NOT want text: -> MANDATORY to append the command: "ABSOLUTELY NO TEXT, NO FONTS, NO LETTERS, NO TYPOGRAPHY, NO WATERMARKS in the image."
+  3. [STYLE & POSE - ADAPTIVE]: Read the user's request from `accumulated_ideas`. IF the user specified a style and pose, apply them exactly. IF the user left it blank or vague, automatically choose a cohesive, high-quality art style and a natural group pose to unify all subjects.
+  4. [TYPOGRAPHY - SMART AUTO-GENERATE]: Read the user's request. IF the user explicitly provided exact text to print, use it: "Seamlessly integrated typography text reading: '[EXACT TEXT]'." IF the user DID NOT provide exact text (e.g., they only described pose/style, or left it entirely blank), YOU MUST GENERATE ONE short, clever, and highly relevant quote that fits the subjects and the vibe, and write: "Seamlessly integrated typography text reading: '[YOUR GENERATED QUOTE]'." The font style, colors, and text effects MUST perfectly match the artistic medium.
 
 👉 [FORMULA 3: FOR TEXT-TO-IMAGE & FREE CHAT (0 OR 1 IMAGE)]
 - TRIGGER: When NO `[ACTIVE TEMPLATE RULE]` block is present.
