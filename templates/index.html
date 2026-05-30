@@ -2277,16 +2277,16 @@
         }
 
         let finalMessage = isMultiMerge
-          ? "Mình gửi các nhân vật cần ghép rồi nè, cậu cho mình xem vài form tùy chọn Style và Pose dáng nhé!"
+          ? "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Hãy tự động chọn 1 phong cách vẽ (Style) phù hợp nhất để vẽ lại tất cả nhân vật cho đồng nhất và Proceed to Step 3 (is_ready_to_render: true) ngay lập tức!"
           : "Mình muốn mix ảnh theo Template!";
 
         // Đọc quote từ input — áp dụng cho tất cả loại template
         const noteInput = document.getElementById(`tpl-note-${templateId}`);
         const note = noteInput ? noteInput.value.trim() : "";
         if (note) {
-          finalMessage += `\nIn thêm chữ lên áo: "${note}"`;
+          finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
         } else {
-          finalMessage += `\nKhông cần in chữ lên áo.`;
+          finalMessage += `\nKhông cần in chữ lên áo (NO_TEXT).`;
         }
 
         const zone = document.getElementById(`tpl-zone-${templateId}`);

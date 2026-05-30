@@ -448,7 +448,7 @@ You MUST analyze the context to choose EXACTLY 1 OF THE 3 FORMULAS below. [DEATH
 - EXACT ASSEMBLY STRUCTURE:
   1. [TEMPLATE INSTRUCTIONS]: "System Rule: " + (Copy the exact Template rule verbatim).
   2. [SUBJECTS IDENTITY]: MANDATORY to objectively and EXTREMELY METICULOUSLY describe the facial features, skin tone, hairstyle, and clothing of ALL subjects present in Image 1, Image 2 (and Image 3 if applicable). E.g., "Subject 1: ... Subject 2: ...". [PROHIBITION COMMAND]: ABSOLUTELY IGNORE their original poses and background contexts.
-  3. [STYLE & POSE - MANDATORY FROM FORM]: CAREFULLY READ THE USER'S SURVEY ANSWERS (from the most recent message). Translate the Art Style and Group Pose / Composition into English to form the MAIN CONTROL COMMAND. E.g., "Render all subjects in a [Style from form]. They are posing [Pose from form] together in a unified scene."
+  3. [STYLE & POSE - AUTO SELECT]: Choose a cohesive, high-quality art style automatically (e.g., clean vector illustration, flat comic ink, or matching the subjects' original vibe) to unify all subjects. Place them together in a natural group pose. DO NOT wait for survey answers. E.g., "Render all subjects in a cohesive, vibrant vector art style. They are posing together dynamically in a unified scene."
   4. [TYPOGRAPHY]:
      + IF the user has finalized a printed quote: -> "Seamlessly integrated typography text reading: '[TEXT CONTENT]'. The font style, colors, and text effects MUST perfectly match the artistic medium."
      + IF the user does NOT want text: -> MANDATORY to append the command: "ABSOLUTELY NO TEXT, NO FONTS, NO LETTERS, NO TYPOGRAPHY, NO WATERMARKS in the image."
