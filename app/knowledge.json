@@ -7,8 +7,9 @@
     "care_instructions": "For the most durable print: Machine wash inside out using cold water. DO NOT iron directly on the print and DO NOT use strong bleach."
   },
   "printing_technology": {
-    "t_shirt_and_hoodie": "Uses DTG (Direct-to-Garment) technology spraying ink directly into the fabric fibers, or premium Pet Heat Transfer for vibrant colors with absolutely no peeling.",
-    "tote_bag_and_pillow": "Uses borderless Sublimation heat transfer; the ink penetrates deeply into the canvas/velvet fibers, allowing for comfortable machine or hand washing without fading."
+    "t_shirt_hoodie_sweater": "Uses DTG (Direct-to-Garment) technology spraying ink directly into the fabric fibers, or premium Pet Heat Transfer for vibrant colors with absolutely no peeling.",
+    "tote_bag": "Uses borderless Sublimation heat transfer; the ink penetrates deeply into the canvas fibers, allowing for comfortable machine or hand washing without fading.",
+    "mug": "Uses premium thermal Sublimation printing, baking the ink directly into the ceramic glaze, ensuring it is microwave safe and will never fade."
   },
   "sample_product_catalog": {
     "t_shirt": [
@@ -16,27 +17,25 @@
       "https://i.postimg.cc/J0ndWt7g/jett-mockup.jpg",
       "https://i.postimg.cc/4dnFDm3K/yoru-mockup.jpg"
     ],
-    "tote_bag": [
-      "https://i.postimg.cc/L6WG2kP6/ahri-tote.jpg",
-      "https://i.postimg.cc/K8rVL6VF/jett-tote.jpg",
-      "https://i.postimg.cc/3wZsKZ8C/yoru-tote.jpg"
-    ],
     "hoodie": [
       "https://i.postimg.cc/C5hpnFMh/ahri-hood.jpg",
       "https://i.postimg.cc/Gh4S7B5Y/jett-hood.jpg",
       "https://i.postimg.cc/CLb6pywd/yoru-hood.jpg"
     ],
-    "pillow": [
-      "https://i.postimg.cc/qBj9ZHM3/ahri-pillow.jpg",
-      "https://i.postimg.cc/fWJ6Fg3V/jett-pillow.jpg",
-      "https://i.postimg.cc/pdcsJRBt/yoru-pillow.jpg"
-    ]
+    "sweater": [],
+    "tote_bag": [
+      "https://i.postimg.cc/L6WG2kP6/ahri-tote.jpg",
+      "https://i.postimg.cc/K8rVL6VF/jett-tote.jpg",
+      "https://i.postimg.cc/3wZsKZ8C/yoru-tote.jpg"
+    ],
+    "mug": []
   },
   "materials_and_sizing": {
     "t_shirt": "Material: 100% 2-way Cotton, 250gsm weight, thick and holds its shape perfectly. Sizes: S (40-50kg), M (50-60kg), L (60-70kg), XL (70-85kg).",
-    "tote_bag": "Material: Premium heavy raw Canvas fabric, X-stitched handles bearing up to 10kg. Dimensions: 35x40cm (fits a 15.6-inch laptop perfectly).",
     "hoodie": "Material: 350gsm cotton fleece lined with ultra-warm sheep wool. Sizes: M (45-60kg), L (60-75kg), XL (75-90kg).",
-    "pillow": "Material: Korean velvet pillowcase with an elegant invisible zipper, filled with pure, ultra-fluffy cotton."
+    "sweater": "Material: Premium cotton blend with a soft fleece interior, keeping you warm while maintaining a stylish form. Sizes: M (45-60kg), L (60-75kg), XL (75-90kg).",
+    "tote_bag": "Material: Premium heavy raw Canvas fabric, X-stitched handles bearing up to 10kg. Dimensions: 35x40cm (fits a 15.6-inch laptop perfectly).",
+    "mug": "Material: High-quality white enameled ceramic, 330ml capacity. Safe for use in microwaves and dishwashers."
   },
   "promotional_policies": {
     "discount": "Get an instant 10% discount on the total bill if the customer orders 3 or more products. For less than 3 products, the listed price applies."

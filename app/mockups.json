@@ -6,11 +6,7 @@
     "base": "https://i.postimg.cc/WzQSDs6c/aothuntrang.png",
     "printArea": { "top": "32%", "left": "32%", "width": "36%", "height": "36%" },
     "colors": [
-      { "id": "white", "name": "Trắng", "hex": "#FFFFFF" },
-      { "id": "black", "name": "Đen", "hex": "#1a1a1a" },
-      { "id": "pink", "name": "Hồng nhạt", "hex": "#FFC0CB" },
-      { "id": "navy", "name": "Xanh Navy", "hex": "#182030" },
-      { "id": "sand", "name": "Cát", "hex": "#C2B280" } 
+      { "id": "white", "name": "Trắng", "hex": "#FFFFFF" }
     ]
   },
   {
@@ -20,9 +16,17 @@
     "base": "https://i.postimg.cc/pV0FF0Ys/hoodie-PNG2.png",
     "printArea": { "top": "36%", "left": "32%", "width": "36%", "height": "36%" },
     "colors": [
-      { "id": "white", "name": "Trắng", "hex": "#f4f4f4" },
-      { "id": "black", "name": "Đen", "hex": "#1a1a1a" },
-      { "id": "sand", "name": "Cát", "hex": "#C2B280" }
+      { "id": "white", "name": "Trắng", "hex": "#f4f4f4" }
+    ]
+  },
+  {
+    "id": "sweater",
+    "name": "Áo Sweater",
+    "emoji": "🧶",
+    "base": "https://i.postimg.cc/PJDHmdjc/pngtree-white-sweater-mockup-hanging-png-file-png-image-11589878.png",
+    "printArea": { "top": "34%", "left": "32%", "width": "36%", "height": "36%" },
+    "colors": [
+      { "id": "white", "name": "Trắng", "hex": "#f4f4f4" }
     ]
   },
   {
@@ -30,10 +34,9 @@
     "name": "Túi Tote",
     "emoji": "👜",
     "base": "https://i.postimg.cc/8CVJSxNG/tote.png",
-    "printArea": { "top": "44%", "left": "32%", "width": "36%", "height": "36%" },
+    "printArea": { "top": "45%", "left": "35%", "width": "30%", "height": "30%" },
     "colors": [
-      { "id": "canvas", "name": "Kem (Canvas)", "hex": "#EAE0C8" },
-      { "id": "black", "name": "Đen", "hex": "#1a1a1a" }
+      { "id": "white", "name": "Trắng", "hex": "#FFFFFF" }
     ]
   },
   {
@@ -41,11 +44,9 @@
     "name": "Cốc sứ",
     "emoji": "☕",
     "base": "https://i.postimg.cc/SQwzdn3J/mug.png",
-    "printArea": { "top": "30%", "left": "28%", "width": "32%", "height": "32%" },
+    "printArea": { "top": "30%", "left": "15%", "width": "40%", "height": "40%" },
     "colors": [
-      { "id": "white", "name": "Trắng sứ", "hex": "#FFFFFF" },
-      { "id": "black", "name": "Đen", "hex": "#1a1a1a" },
-      { "id": "yellow", "name": "Vàng", "hex": "#FFD700" }
+      { "id": "white", "name": "Trắng sứ", "hex": "#FFFFFF" }
     ]
   }
 ]

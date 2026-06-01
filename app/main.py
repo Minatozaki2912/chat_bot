@@ -164,6 +164,9 @@ def call_conversation_api(
             if template_id == "multi_subject_merge":
                 # Nhãn dành riêng cho template ghép ảnh (hỗ trợ tới 3 chủ thể đồng cấp)
                 label = f"[ẢNH {idx + 1} - CHỦ THỂ SỐ {idx + 1} (SUBJECT {idx + 1})]:"
+            elif template_id == "style_transfer":
+                # TỐI ƯU CHO LUỒNG MỚI: Dù chỉ nhận 1 ảnh độc nhất, vẫn ép nhãn chuẩn để khớp với FORMULA 1
+                label = "[ẢNH 1 - CHỦ THỂ (MAIN SUBJECT)]:"
             elif template_id and len(image_base64_list) == 2:
                 # Nhãn cho các template thông thường (1 Chủ thể + 1 Style)
                 label = (
@@ -313,7 +316,7 @@ def call_image_generation(
     """
     Sinh ảnh preview từ AI (luôn trả về bản preview, không generate final).
     - Tạo ảnh từ đầu (is_retry=False): Dùng IMAGE_MODEL_GEN
-    - Retry/sửa ảnh  (is_retry=True):  Dùng IMAGE_MODEL_EDIT
+    - Tạo ảnh bằng template, tạo ảnh từ ảnh mẫu, retry/sửa ảnh(is_retry=True):  Dùng IMAGE_MODEL_EDIT
     Final được xử lý hoàn toàn riêng qua finalize_image() — không gọi lại AI.
     """
     output_dir = os.path.join(_PROJECT_ROOT, "outputs")
