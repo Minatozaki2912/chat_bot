@@ -2852,13 +2852,22 @@
             designEl.style.height = activeProduct.printArea.height;
         }
 
-        // 3. Render Canvas chuẩn bị cho nút Tải xuống
+        // 3. Render Canvas và TỰ ĐỘNG LƯU ảnh lên Server
         renderMockupToCanvas(activeProduct, (dataUrl) => {
-            const dlBtn = document.getElementById("mockup-download-btn");
-            if (dlBtn) {
-                dlBtn.href = dataUrl;
-                dlBtn.download = `BestiePOD_${activeProduct.id}_Generated.png`;
-            }
+            console.log("⏳ Đang tự động lưu Mockup lên server...");
+            
+            fetch("/api/save-mockup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image_base64: dataUrl })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    console.log(`✅ Tự động lưu thành công (${activeProduct.name}):`, data.url);
+                }
+            })
+            .catch(err => console.error("❌ Lỗi tự động lưu mockup:", err));
         });
       }
       function renderMockupToCanvas(product, callback) {
@@ -2947,14 +2956,6 @@
             />
           </div>
         </div>
-        <a
-          class="mockup-download-btn"
-          id="mockup-download-btn"
-          href="#"
-          download="BestiePOD_Mockup.png"
-        >
-          ⬇️ Tải ảnh Mockup nét căng về máy
-        </a>
       </div>
 
       <h4

@@ -19,8 +19,13 @@ import app.prompts as prompts
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-os.makedirs("outputs", exist_ok=True)
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+# Thư mục 1: Lưu ảnh AI design nguyên gốc
+os.makedirs("design_outputs", exist_ok=True)
+app.mount("/design_outputs", StaticFiles(directory="design_outputs"), name="design_outputs")
+
+# Thư mục 2: Lưu ảnh Mockup tự động
+os.makedirs("mockups_outputs", exist_ok=True)
+app.mount("/mockups_outputs", StaticFiles(directory="mockups_outputs"), name="mockups_outputs")
 # ==================== PROJECT ROOT ====================
 import pathlib
 
@@ -33,10 +38,10 @@ print(f"✅ PROJECT_ROOT initialized: {_PROJECT_ROOT}")
 # =====================================================================
 def get_valid_image_url(image_path_or_url):
     """
-    Biến đổi link nội bộ (/outputs/...) thành chuỗi Base64.
+    Biến đổi link nội bộ (/design_outputs/...) thành chuỗi Base64.
     Nếu đã là base64 sẵn từ Frontend, hoặc là link web ngoài thì giữ nguyên.
     """
-    if image_path_or_url and image_path_or_url.startswith("/outputs/"):
+    if image_path_or_url and image_path_or_url.startswith("/design_outputs/"):
         local_file = image_path_or_url.lstrip("/")
         try:
             with open(local_file, "rb") as f:
@@ -252,29 +257,12 @@ def call_conversation_api(
         return None
 
 
-def _to_base64_url(path: str) -> str | None:
-    if not path:
-        return None
-    if path.startswith("data:"):
-        return path
-    if path.startswith("/uploads/") or path.startswith("/outputs/"):
-        file_path = os.path.join(_PROJECT_ROOT, path.lstrip("/"))
-        if not os.path.exists(file_path):
-            return None
-        ext = file_path.rsplit(".", 1)[-1].lower()
-        mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
-        with open(file_path, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode("utf-8")
-        return f"data:{mime};base64,{encoded}"
-    return None
-
-
 def _to_base64_url(path: str, preprocess: bool = False) -> str | None:
     if not path:
         return None
     if path.startswith("data:"):
         return path
-    if path.startswith("/uploads/") or path.startswith("/outputs/"):
+    if path.startswith("/uploads/") or path.startswith("/design_outputs/"):
         file_path = os.path.join(_PROJECT_ROOT, path.lstrip("/"))
         if not os.path.exists(file_path):
             return None
@@ -303,7 +291,7 @@ def call_image_generation(
     reference_images: list = None,
     is_retry: bool = False,
 ):
-    output_dir = os.path.join(_PROJECT_ROOT, "outputs")
+    output_dir = os.path.join(_PROJECT_ROOT, "design_outputs")
     os.makedirs(output_dir, exist_ok=True)
 
     pod_output_instruction = """
@@ -396,7 +384,7 @@ def call_image_generation(
             print("  🔲 Resized to 1024x1024")
         filename = f"preview_raw_{int(time.time())}_{uuid.uuid4().hex[:8]}.jpg"
         img_raw.save(os.path.join(output_dir, filename), format="JPEG", quality=95)
-        return {"image_url": f"/outputs/{filename}", "error": None}
+        return {"image_url": f"/design_outputs/{filename}", "error": None}
     except Exception as e:
         print(f"❌ call_image_generation Exception: {e}")
         return {"image_url": None, "error": str(e)}
@@ -407,16 +395,16 @@ def finalize_image(preview_image_url: str):
     Chốt ảnh final — KHÔNG gọi AI, KHÔNG edit gì thêm.
     Bản JPG: Không xử lý Alpha, đưa toàn bộ vào nền trắng chuẩn RGB.
     """
-    output_dir = os.path.join(_PROJECT_ROOT, "outputs")
+    output_dir = os.path.join(_PROJECT_ROOT, "design_outputs")
     os.makedirs(output_dir, exist_ok=True)
 
     try:
-        if preview_image_url.startswith("/outputs/"):
+        if preview_image_url.startswith("/design_outputs/"):
             file_path = os.path.join(_PROJECT_ROOT, preview_image_url.lstrip("/"))
         else:
             return {
                 "image_url": None,
-                "error": "Invalid preview_image_url — must be an /outputs/ path",
+                "error": "Invalid preview_image_url — must be an /design_outputs/ path",
             }
 
         if not os.path.exists(file_path):
@@ -463,7 +451,7 @@ def finalize_image(preview_image_url: str):
             optimize=True,
         )
         print(f"✅ Final saved: {filename} ({target_w}x{target_h} @ 300 DPI)")
-        return {"image_url": f"/outputs/{filename}", "error": None}
+        return {"image_url": f"/design_outputs/{filename}", "error": None}
 
     except Exception as e:
         print(f"❌ finalize_image Exception: {e}")
@@ -624,10 +612,10 @@ async def design_bg_color_endpoint(request: Request):
     data = await request.json()
     image_url = data.get("image_url", "")
 
-    # Lấy ảnh — có thể là /outputs/... (local) hoặc URL ngoài
+    # Lấy ảnh — có thể là /design_outputs/... (local) hoặc URL ngoài
     img_array = None
 
-    if image_url.startswith("/outputs/"):
+    if image_url.startswith("/design_outputs/"):
         file_path = os.path.join(_PROJECT_ROOT, image_url.lstrip("/"))
         if os.path.exists(file_path):
             try:
@@ -682,7 +670,37 @@ async def design_bg_color_endpoint(request: Request):
     print(f"🎨 Design BG color detected (Dark Target): {hex_color} (R={r}, G={g}, B={b})")
     return JSONResponse(content={"hex": hex_color, "r": r, "g": g, "b": b})
 
+@app.post("/api/save-mockup")
+async def save_mockup_endpoint(request: Request):
+    """
+    Nhận ảnh Mockup từ Frontend (định dạng base64) và tự động lưu vào thư mục mockups_outputs
+    """
+    data = await request.json()
+    b64_data = data.get("image_base64")
+    if not b64_data:
+        return JSONResponse(content={"error": "Missing image data"}, status_code=400)
 
+    try:
+        # Tách lấy phần data thật (bỏ cái mác header 'data:image/png;base64,')
+        if "," in b64_data:
+            header, encoded = b64_data.split(",", 1)
+        else:
+            encoded = b64_data
+
+        image_bytes = base64.b64decode(encoded)
+        # Tạo tên file có chứa chữ mockup để phân biệt
+        filename = f"mockup_saved_{int(time.time())}_{uuid.uuid4().hex[:8]}.png"
+        filepath = os.path.join(_PROJECT_ROOT, "mockups_outputs", filename)
+
+        # Ghi file vào thư mục mới
+        with open(filepath, "wb") as f:
+            f.write(image_bytes)
+
+        print(f"👕 Đã lưu Mockup tự động thành công: {filename}")
+        return JSONResponse(content={"url": f"/mockups_outputs/{filename}", "success": True})
+    except Exception as e:
+        print(f"❌ Lỗi khi lưu mockup: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn
