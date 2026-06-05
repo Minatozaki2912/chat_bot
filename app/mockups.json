@@ -3,50 +3,50 @@
     "id": "tshirt",
     "name": "Áo thun Classic",
     "emoji": "👕",
-    "base": "https://i.postimg.cc/WzQSDs6c/aothuntrang.png",
-    "printArea": { "top": "32%", "left": "32%", "width": "36%", "height": "36%" },
+    "base": "https://i.postimg.cc/t4s1rDLc/b5e4dc99-4b69-4a96-b492-40263ecddf31.png",
+    "printArea": { "top": "35%", "left": "41%", "width": "20%", "height": "20%" },
     "colors": [
-      { "id": "white", "name": "Trắng", "hex": "#FFFFFF" }
+      { "id": "black", "name": "Đen", "hex": "#111111" }
     ]
   },
   {
     "id": "hoodie",
     "name": "Áo Hoodie",
     "emoji": "🧥",
-    "base": "https://i.postimg.cc/pV0FF0Ys/hoodie-PNG2.png",
-    "printArea": { "top": "36%", "left": "32%", "width": "36%", "height": "36%" },
+    "base": "https://i.postimg.cc/SR4838WC/47625f80-30f7-412b-ad3f-94b009c7cdbc.png",
+    "printArea": { "top": "32%", "left": "40%", "width": "22%", "height": "22%" },
     "colors": [
-      { "id": "white", "name": "Trắng", "hex": "#f4f4f4" }
+      { "id": "black", "name": "Đen", "hex": "#111111" }
     ]
   },
   {
     "id": "sweater",
     "name": "Áo Sweater",
     "emoji": "🧶",
-    "base": "https://i.postimg.cc/PJDHmdjc/pngtree-white-sweater-mockup-hanging-png-file-png-image-11589878.png",
-    "printArea": { "top": "34%", "left": "32%", "width": "36%", "height": "36%" },
+    "base": "https://i.postimg.cc/W3LJqrYk/a738d8be-403a-4924-9d0c-fee237779af5.png",
+    "printArea": { "top": "32%", "left": "40%", "width": "22%", "height": "22%" },
     "colors": [
-      { "id": "white", "name": "Trắng", "hex": "#f4f4f4" }
+      { "id": "black", "name": "Đen", "hex": "#111111" }
     ]
   },
   {
     "id": "tote",
     "name": "Túi Tote",
     "emoji": "👜",
-    "base": "https://i.postimg.cc/8CVJSxNG/tote.png",
-    "printArea": { "top": "45%", "left": "35%", "width": "30%", "height": "30%" },
+    "base": "https://i.postimg.cc/bNwcyDT3/7faad6df-1a24-45ec-ab12-081a85615a41.png",
+    "printArea": { "top": "50%", "left": "40%", "width": "22%", "height": "22%" },
     "colors": [
-      { "id": "white", "name": "Trắng", "hex": "#FFFFFF" }
+      { "id": "black", "name": "Đen", "hex": "#111111" }
     ]
   },
   {
     "id": "mug",
     "name": "Cốc sứ",
     "emoji": "☕",
-    "base": "https://i.postimg.cc/SQwzdn3J/mug.png",
-    "printArea": { "top": "30%", "left": "15%", "width": "40%", "height": "40%" },
+    "base": "https://i.postimg.cc/cCGMWPNx/9ff0de37-0da1-4ebc-b0ff-781db1c6ad53.png",
+    "printArea": { "top": "45%", "left": "38%", "width": "22%", "height": "22%" },
     "colors": [
-      { "id": "white", "name": "Trắng sứ", "hex": "#FFFFFF" }
+      { "id": "black", "name": "Đen", "hex": "#111111" }
     ]
   }
 ]

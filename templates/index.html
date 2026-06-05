@@ -868,39 +868,31 @@
         background-color: transparent !important; /* Bắt buộc trong suốt để không bị viền vuông */
       }
 
-      /* Lớp 1: Khối màu bị cắt xén theo hình dáng sản phẩm nhờ Mask */
+      /* Lớp màu không cần thiết nữa, ẩn hoàn toàn đi */
       .preview-color-layer {
-        display: block; /* BẬT LẠI LỚP NÀY */
-        position: absolute;
-        inset: 0;
-        background-color: transparent;
-        -webkit-mask-size: contain;
-        -webkit-mask-position: center;
-        -webkit-mask-repeat: no-repeat;
-        mask-size: contain;
-        mask-position: center;
-        mask-repeat: no-repeat;
-        z-index: 1;
+        display: none; 
       }
 
-      /* Lớp 2: Áo trắng gốc, dùng multiply để lấy nếp gấp */
+      /* Lớp 1: Áo đen gốc nằm dưới cùng, hiển thị bình thường */
       img.preview-base {
         position: absolute;
         inset: 0;
         width: 100%;
         height: 100%;
         object-fit: contain;
-        mix-blend-mode: multiply;
+        mix-blend-mode: normal;
         pointer-events: none;
-        z-index: 2;
+        z-index: 1;
       }
 
-      /* Lớp 3: Hình Design AI */
+      /* Lớp 2: Lớp Design in lên áo. 
+         Dùng SCREEN để tự động làm trong suốt nền đen của AI, chỉ giữ lại chi tiết hình vẽ */
       img.preview-design {
         position: absolute;
         object-fit: contain;
+        mix-blend-mode: screen; 
         pointer-events: none;
-        z-index: 3;
+        z-index: 2;
       }
 
       /* Bảng chọn màu sắc */
@@ -1012,14 +1004,15 @@
       /* Lớp trên: Thiết kế AI */
       .chat-mini-mockup .ai-design {
         position: absolute;
-        /* Đã phóng to vùng in để dễ nhìn hơn trên web */
-        top: 22%;
-        left: 25%;
-        width: 50%;
-        height: 52%;
+        /* Cập nhật lại tọa độ in cho khớp với tỷ lệ của ảnh áo đen */
+        top: 32%;
+        left: 38%;
+        width: 26%;
+        height: 26%;
         object-fit: contain;
         z-index: 2;
-        mix-blend-mode: multiply; /* Hiệu ứng in hằn nếp nhăn áo */
+        /* Chuyển sang Screen để nền đen của ảnh design tự tàng hình trên áo đen */
+        mix-blend-mode: screen; 
       }
     </style>
   </head>
@@ -1455,22 +1448,13 @@
               height = Math.round(height * ratio);
             }
 
-            // TẠO CANVAS VUÔNG 1:1 ĐỂ BẢO VỆ ẢNH KHỎI BỊ AI BÓP MÉO
-            const size = Math.max(width, height);
-            canvas.width = size;
-            canvas.height = size;
+            // Giữ nguyên tỷ lệ, không pad thêm viền
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
 
-            // Nền trắng để hòa làm 1 với khung
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, size, size);
-
-            // Căn giữa ảnh gốc vào trong khung vuông
-            const offsetX = (size - width) / 2;
-            const offsetY = (size - height) / 2;
-            ctx.drawImage(img, offsetX, offsetY, width, height);
-
-            surveyImageBase64 = canvas.toDataURL("image/jpeg", 0.8);
+            surveyImageBase64 = canvas.toDataURL("image/jpeg", 0.9);
             imageForNextRender = surveyImageBase64; // LƯU VÀO BIẾN BẢO LƯU
 
             document.getElementById("survey-img-preview").src =
@@ -1881,22 +1865,13 @@
                 height = Math.round(height * ratio);
               }
 
-              // TẠO CANVAS VUÔNG 1:1 ĐỂ BẢO VỆ ẢNH KHỎI BỊ AI BÓP MÉO
-              const size = Math.max(width, height);
-              canvas.width = size;
-              canvas.height = size;
+              // Giữ nguyên tỷ lệ, không pad thêm viền
+              canvas.width = width;
+              canvas.height = height;
               const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0, width, height);
 
-              // Nền trắng để hòa làm 1 với khung
-              ctx.fillStyle = "#FFFFFF";
-              ctx.fillRect(0, 0, size, size);
-
-              // Căn giữa ảnh gốc vào trong khung vuông
-              const offsetX = (size - width) / 2;
-              const offsetY = (size - height) / 2;
-              ctx.drawImage(img, offsetX, offsetY, width, height);
-
-              const b64 = canvas.toDataURL("image/jpeg", 0.8);
+              const b64 = canvas.toDataURL("image/jpeg", 0.9);
               currentImagesBase64.push(b64);
 
               // CHỈ CHỐT ẢNH ĐẦU TIÊN LÀM BASE GỐC (Tránh bị ghi đè bởi các ảnh sau)
@@ -2129,43 +2104,50 @@
       // Khởi tạo thư viện Style mẫu (Cậu có thể đổi link ảnh tùy ý)
       // Thư viện hình ảnh kết hợp text miêu tả ngầm dựa theo luật của prompt.py
       const STYLE_LIBRARY = [
-          {
-              url: "https://i.postimg.cc/R0NZv037/base64-17678622803041631915371.png",
-              description: "cute 3D clay plush toy render style, knitted wool texture, soft fabric stitching, high contrast flat colors"
-          },
-          {
-              url: "https://i.postimg.cc/wjkm13Tw/pod-design-1778228124.png",
-              description: "retro comic ink panel illustration, bold clean line art style, punchy halftone dots printing texture shading"
-          },
-          {
-              url: "https://i.postimg.cc/3wZsKZ8C/yoru-tote.jpg",
-              description: "classic cel-shaded anime illustration style, clean crisp ink outlines, vibrant flat screenprint colors"
-          },
-          {
-              url: "https://i.postimg.cc/G2jZCZFY/ahri-mockup.jpg",
-              description: "fluid watercolor wash technique, soft color bleeding edges, wet-on-wet washes, elegant charcoal line sketches"
-          }
+        {
+          url: "https://i.postimg.cc/R0NZv037/base64-17678622803041631915371.png",
+          description:
+            "cute 3D clay plush toy render style, knitted wool texture, soft fabric stitching, high contrast flat colors",
+        },
+        {
+          url: "https://i.postimg.cc/wjkm13Tw/pod-design-1778228124.png",
+          description:
+            "retro comic ink panel illustration, bold clean line art style, punchy halftone dots printing texture shading",
+        },
+        {
+          url: "https://i.postimg.cc/3wZsKZ8C/yoru-tote.jpg",
+          description:
+            "classic cel-shaded anime illustration style, clean crisp ink outlines, vibrant flat screenprint colors",
+        },
+        {
+          url: "https://i.postimg.cc/G2jZCZFY/ahri-mockup.jpg",
+          description:
+            "fluid watercolor wash technique, soft color bleeding edges, wet-on-wet washes, elegant charcoal line sketches",
+        },
       ];
 
       let selectedStyleText = ""; // Biến lưu trữ đoạn text miêu tả của style được chọn
 
       function selectStyleImage(url, index, templateId) {
-          // THAY ĐỔI CỐT LÕI: Lấy đoạn text miêu tả thay vì lấy URL ảnh làm mẫu gửi lên AI
-          selectedStyleText = STYLE_LIBRARY[index].description; 
-          
-          // Vẫn làm hiệu ứng viền sáng xanh để người dùng biết mình đang chọn hình nào ngoài UI
-          const grid = document.getElementById(`style-grid-${templateId}`);
-          if(grid) {
-              grid.querySelectorAll('.style-lib-item').forEach(el => el.style.borderColor = 'transparent');
-              grid.querySelector(`#style-img-${index}`).style.borderColor = '#00f5d4';
-          }
+        // THAY ĐỔI CỐT LÕI: Lấy đoạn text miêu tả thay vì lấy URL ảnh làm mẫu gửi lên AI
+        selectedStyleText = STYLE_LIBRARY[index].description;
+
+        // Vẫn làm hiệu ứng viền sáng xanh để người dùng biết mình đang chọn hình nào ngoài UI
+        const grid = document.getElementById(`style-grid-${templateId}`);
+        if (grid) {
+          grid
+            .querySelectorAll(".style-lib-item")
+            .forEach((el) => (el.style.borderColor = "transparent"));
+          grid.querySelector(`#style-img-${index}`).style.borderColor =
+            "#00f5d4";
+        }
       }
 
       function selectTemplate(templateId, templateName) {
         selectedTemplateId = templateId;
         templateImage1 = null;
         templateImage2 = null;
-        templateImage3 = null; 
+        templateImage3 = null;
         selectedStyleText = ""; // Reset text mô tả style
 
         let isMultiMerge = templateId === "multi_subject_merge";
@@ -2197,8 +2179,8 @@
                 </div>
             `;
         } else if (isStyleTransfer) {
-             // UI cho luồng mới: 1 Ô ảnh gốc duy nhất + Thư viện ảnh chọn Style
-             uploadBoxesHtml = `
+          // UI cho luồng mới: 1 Ô ảnh gốc duy nhất + Thư viện ảnh chọn Style
+          uploadBoxesHtml = `
                 <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
                 <div class="upload-boxes-container" style="justify-content: flex-start;">
                     <div class="upload-box" style="flex: 0 0 100px; height: 100px;" onclick="document.getElementById('file-tpl-1').click()">
@@ -2210,9 +2192,11 @@
                     <div style="flex: 1; padding-left: 12px; border-left: 1px solid #333; overflow: hidden;">
                         <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">🎨 Chọn Style từ thư viện:</div>
                         <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; max-width: 100%; scroll-behavior: smooth;" id="style-grid-${templateId}">
-                            ${STYLE_LIBRARY.map((item, idx) => `
+                            ${STYLE_LIBRARY.map(
+                              (item, idx) => `
                                 <img src="${item.url}" class="style-lib-item" id="style-img-${idx}" onclick="selectStyleImage('${item.url}', ${idx}, '${templateId}')" style="width: 65px; height: 65px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; object-fit: cover; flex-shrink: 0; transition: 0.2s;">
-                            `).join('')}
+                            `,
+                            ).join("")}
                         </div>
                     </div>
                 </div>
@@ -2245,7 +2229,7 @@
               <div style="width:100%;">
                   <div class="bubble ai">
                       Cậu vừa chọn phép thuật: <strong>${templateName}</strong> 🪄<br>
-                      ${isMultiMerge ? "Tải lên các nhân vật cậu muốn ghép chung nhé (Tối đa 3 ảnh nha)!" : (isStyleTransfer ? "Tải 1 ảnh chủ thể và chạm vào ảnh Style cậu thích ở bên cạnh nha!" : "Bây giờ cậu tải 2 ảnh lên ô tương ứng dưới này giúp mình nha!")}
+                      ${isMultiMerge ? "Tải lên các nhân vật cậu muốn ghép chung nhé (Tối đa 3 ảnh nha)!" : isStyleTransfer ? "Tải 1 ảnh chủ thể và chạm vào ảnh Style cậu thích ở bên cạnh nha!" : "Bây giờ cậu tải 2 ảnh lên ô tương ứng dưới này giúp mình nha!"}
                   </div>
                   
                   <div class="template-upload-zone" id="tpl-zone-${templateId}">
@@ -2255,7 +2239,7 @@
                               type="text"
                               id="tpl-note-${templateId}"
                               class="survey-input"
-                              placeholder="${isMultiMerge ? '✏️ Nhập Style, dáng đứng... AI sẽ tự tạo Quote nếu để trống!' : '✏️ In thêm chữ lên áo? Nhập tên hoặc quote ở đây (có thể bỏ qua)'}"
+                              placeholder="${isMultiMerge ? "✏️ Nhập Style, dáng đứng... AI sẽ tự tạo Quote nếu để trống!" : "✏️ In thêm chữ lên áo? Nhập tên hoặc quote ở đây (có thể bỏ qua)"}"
                               style="width: 100%; box-sizing: border-box;"
                           >
                       </div>
@@ -2275,7 +2259,7 @@
         reader.onload = function (e) {
           const img = new Image();
           img.onload = function () {
-            // Giữ nguyên logic nhét ảnh vào khung vuông tỷ lệ 1:1 bảo vệ AI không bị lú
+            // Giữ nguyên tỷ lệ, không pad thêm viền
             const canvas = document.createElement("canvas");
             const MAX_WIDTH = 800;
             let width = img.width;
@@ -2287,18 +2271,12 @@
               height = Math.round(height * ratio);
             }
 
-            const size = Math.max(width, height);
-            canvas.width = size;
-            canvas.height = size;
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext("2d");
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, size, size);
+            ctx.drawImage(img, 0, 0, width, height);
 
-            const offsetX = (size - width) / 2;
-            const offsetY = (size - height) / 2;
-            ctx.drawImage(img, offsetX, offsetY, width, height);
-
-            const b64 = canvas.toDataURL("image/jpeg", 0.8);
+            const b64 = canvas.toDataURL("image/jpeg", 0.9);
 
             // Gán ảnh vào đúng biến và hiển thị lên giao diện
             if (index === 1) {
@@ -2331,19 +2309,21 @@
 
         // Bắt lỗi upload theo từng nhánh giao diện
         if (isStyleTransfer) {
-            if (!templateImage1) {
-                alert("Cậu nhớ tải ảnh chủ thể lên nha! 🥺");
-                return;
-            }
-            if (!selectedStyleText) {
-                alert("Cậu nhớ bấm chọn 1 ảnh phong cách từ thư viện Style nha! 🎨");
-                return;
-            }
+          if (!templateImage1) {
+            alert("Cậu nhớ tải ảnh chủ thể lên nha! 🥺");
+            return;
+          }
+          if (!selectedStyleText) {
+            alert(
+              "Cậu nhớ bấm chọn 1 ảnh phong cách từ thư viện Style nha! 🎨",
+            );
+            return;
+          }
         } else {
-            if (!templateImage1 || !templateImage2) {
-                alert("Cậu nhớ tải ít nhất 2 ảnh đầu tiên nha! 🥺");
-                return;
-            }
+          if (!templateImage1 || !templateImage2) {
+            alert("Cậu nhớ tải ít nhất 2 ảnh đầu tiên nha! 🥺");
+            return;
+          }
         }
 
         let finalMessage = "Mình muốn mix ảnh theo Template!";
@@ -2351,7 +2331,8 @@
         const note = noteInput ? noteInput.value.trim() : "";
 
         if (isMultiMerge) {
-          finalMessage = "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
+          finalMessage =
+            "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
           if (note) {
             finalMessage += `\n[USER REQUEST - STYLE, POSE & QUOTE]: "${note}". \n[INSTRUCTION]: Hãy đọc yêu cầu này. Nếu khách có chỉ định style và dáng đứng, hãy áp dụng. NẾU khách có gõ kèm một câu quote cụ thể, hãy dùng nó. NẾU KHÔNG CÓ QUOTE CỤ THỂ, bạn BẮT BUỘC phải tự động sáng tạo ra 1 câu quote ngắn gọn, hài hước hoặc ý nghĩa dựa trên các nhân vật và style, sau đó đưa vào in lên áo!`;
           } else {
@@ -2379,11 +2360,11 @@
         }
 
         if (isStyleTransfer) {
-            // ĐÚNG YÊU CẦU: Chỉ cho phép nạp duy nhất 1 tấm ảnh Subject vào danh sách gửi đi
-            currentImagesBase64 = [templateImage1]; 
+          // ĐÚNG YÊU CẦU: Chỉ cho phép nạp duy nhất 1 tấm ảnh Subject vào danh sách gửi đi
+          currentImagesBase64 = [templateImage1];
         } else {
-            currentImagesBase64 = [templateImage1, templateImage2];
-            if (templateImage3) currentImagesBase64.push(templateImage3);
+          currentImagesBase64 = [templateImage1, templateImage2];
+          if (templateImage3) currentImagesBase64.push(templateImage3);
         }
 
         addMessage("user", finalMessage, currentImagesBase64);
@@ -2442,7 +2423,7 @@
                     <div style="width: 100%; max-width: 300px;">
                         <div style="font-size: 11px; color: #00f5d4; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; text-align: center;">👕 Lên áo thử</div>
                         <div class="chat-mini-mockup" style="margin: 0 auto; width: 100%; max-width: 100%;">
-                            <img class="base-shirt" src="https://i.postimg.cc/65RdRrHj/aothuntrang.png">
+                            <img class="base-shirt" src="https://i.postimg.cc/t4s1rDLc/b5e4dc99-4b69-4a96-b492-40263ecddf31.png">
                             <img class="ai-design" src="${data.image_url}">
                         </div>
                     </div>
@@ -2664,7 +2645,7 @@
                             <div style="width: 100%; max-width: 300px;">
                                 <div style="font-size: 11px; color: #00f5d4; margin-bottom: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; text-align: center;">👕 Lên áo thử</div>
                                 <div class="chat-mini-mockup" style="margin: 0 auto; width: 100%; max-width: 100%;">
-                                    <img class="base-shirt" src="https://i.postimg.cc/65RdRrHj/aothuntrang.png">
+                                    <img class="base-shirt" src="https://i.postimg.cc/t4s1rDLc/b5e4dc99-4b69-4a96-b492-40263ecddf31.png">
                                     <img class="ai-design" src="${data.image_url}">
                                 </div>
                             </div>
@@ -2775,11 +2756,11 @@
         }
       };
 
-// ===================== MOCKUP PAGE LOGIC =====================
+      // ===================== MOCKUP PAGE LOGIC =====================
       let MOCKUP_PRODUCTS = [];
       let currentMockupDesignUrl = null;
       let activeProduct = null;
-      // Đã xóa biến activeColorVariant vì không còn dùng màu nữa
+      let currentBgColor = { hex: "#111111", r: 17, g: 17, b: 17 }; // màu nền detect từ design
 
       async function loadMockupProducts() {
         if (MOCKUP_PRODUCTS.length > 0) return;
@@ -2794,6 +2775,25 @@
       async function openMockupPage(designUrl) {
         currentMockupDesignUrl = designUrl;
         await loadMockupProducts();
+
+        // Detect màu nền của design → dùng để tint sản phẩm
+        currentBgColor = { hex: "#111111", r: 17, g: 17, b: 17 }; // default đen
+        try {
+          const bgRes = await fetch("/api/design-bg-color", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image_url: designUrl }),
+          });
+          if (bgRes.ok) {
+            const bgData = await bgRes.json();
+            if (bgData.hex) {
+              currentBgColor = bgData;
+              console.log("🎨 Design BG color:", bgData.hex);
+            }
+          }
+        } catch (e) {
+          console.warn("Không detect được màu nền, dùng màu mặc định.", e);
+        }
 
         document.getElementById("mockup-page").classList.add("active");
 
@@ -2827,39 +2827,22 @@
           grid.appendChild(card);
         });
       }
-
-      // Khi bấm chọn Sản Phẩm (Đã tích hợp mặc định màu trắng)
       function selectMockupProduct(product) {
         activeProduct = product;
 
         // Đổi UI trạng thái selected
-        document
-          .querySelectorAll(".mockup-product-card")
-          .forEach((c) => c.classList.remove("selected"));
-        document
-          .getElementById("prod-card-" + product.id)
-          .classList.add("selected");
-
-        // Đổi tiêu đề
+        document.querySelectorAll(".mockup-product-card").forEach((c) => c.classList.remove("selected"));
+        document.getElementById("prod-card-" + product.id).classList.add("selected");
         document.getElementById("mockup-preview-title").textContent = product.emoji + " " + product.name;
 
-        // 1. Ép lớp nền của áo luôn là màu trắng (#FFFFFF) thay vì load từ mảng màu
-        const colorLayer = document.getElementById("mockup-color-layer");
-        if (colorLayer) {
-            colorLayer.style.backgroundColor = "#FFFFFF";
-            colorLayer.style.webkitMaskImage = `url('${activeProduct.base}')`;
-            colorLayer.style.maskImage = `url('${activeProduct.base}')`;
+        // 1. Load áo gốc
+        const baseEl = document.getElementById("mockup-preview-base");
+        if (baseEl) {
+            baseEl.crossOrigin = "anonymous";
+            baseEl.src = activeProduct.base;
         }
 
-        // Đảm bảo wrapper bên ngoài trong suốt
-        const wrap = document.getElementById("mockup-preview-wrap");
-        if (wrap) wrap.style.backgroundColor = "transparent";
-
-        // 2. Cập nhật Lớp Áo gốc
-        const baseEl = document.getElementById("mockup-preview-base");
-        if (baseEl) baseEl.src = activeProduct.base;
-
-        // 3. Định vị Lớp Design (Cập nhật tọa độ linh hoạt theo từng sản phẩm)
+        // 2. Load Design (CSS screen sẽ lo phần khử viền đen)
         const designEl = document.getElementById("mockup-preview-design");
         if (designEl) {
             designEl.src = currentMockupDesignUrl;
@@ -2869,51 +2852,51 @@
             designEl.style.height = activeProduct.printArea.height;
         }
 
-        // 4. Render Canvas để khách tải xuống (Mặc định xài màu trắng)
+        // 3. Render Canvas chuẩn bị cho nút Tải xuống
         renderMockupToCanvas(activeProduct, (dataUrl) => {
-          const dlBtn = document.getElementById("mockup-download-btn");
-          if (dlBtn) {
-              dlBtn.href = dataUrl;
-              dlBtn.download = `BestiePOD_${activeProduct.id}_White.png`;
-          }
+            const dlBtn = document.getElementById("mockup-download-btn");
+            if (dlBtn) {
+                dlBtn.href = dataUrl;
+                dlBtn.download = `BestiePOD_${activeProduct.id}_Generated.png`;
+            }
         });
       }
-
-      // Mô phỏng lại cơ chế 3 Layer trên Canvas để khách tải xuống (Bỏ colorVariant)
       function renderMockupToCanvas(product, callback) {
-        const canvas = document.createElement("canvas");
-        canvas.width = 800;
-        canvas.height = 800;
+        const SIZE    = 800;
+        const ZOOM    = 1.35;
+        const scaled  = SIZE * ZOOM;          
+        const off     = (SIZE - scaled) / 2;  
+
+        const canvas  = document.createElement("canvas");
+        canvas.width  = SIZE;
+        canvas.height = SIZE;
         const ctx = canvas.getContext("2d");
+
+        ctx.beginPath();
+        ctx.rect(0, 0, SIZE, SIZE);
+        ctx.clip();
 
         const baseImg = new Image();
         baseImg.crossOrigin = "anonymous";
         baseImg.onload = function () {
-          // BƯỚC 1: Đổ màu trơn toàn Canvas là màu Trắng
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, 800, 800);
+          // 1. Vẽ nguyên cảnh vật + áo gốc
+          ctx.globalCompositeOperation = "source-over";
+          ctx.drawImage(baseImg, off, off, scaled, scaled);
 
-          // BƯỚC 2: Cắt phần màu dư thừa theo hình dáng áo
-          ctx.globalCompositeOperation = "destination-in";
-          ctx.drawImage(baseImg, 0, 0, 800, 800);
-
-          // BƯỚC 3: Đè hình cái áo trắng lên trên, dùng multiply để lấy nếp gấp/shadow
-          ctx.globalCompositeOperation = "multiply";
-          ctx.drawImage(baseImg, 0, 0, 800, 800);
-
-          // BƯỚC 4: Cuối cùng vẽ hình Design AI lên
+          // 2. Tải và vẽ Design AI
           const designImg = new Image();
           designImg.crossOrigin = "anonymous";
           designImg.onload = function () {
-            const p = (v) => parseFloat(v) / 100;
-            const top = p(product.printArea.top) * 800;
-            const left = p(product.printArea.left) * 800;
-            const w = p(product.printArea.width) * 800;
-            const h = p(product.printArea.height) * 800;
+            const p    = (v) => parseFloat(v) / 100;
+            const top  = off + p(product.printArea.top)  * scaled;
+            const left = off + p(product.printArea.left) * scaled;
+            const w    = p(product.printArea.width)  * scaled;
+            const h    = p(product.printArea.height) * scaled;
 
-            ctx.globalCompositeOperation = "source-over"; // Chế độ in đè bình thường
+            // Dùng 'screen' để tự động khử nền đen của design AI
+            ctx.globalCompositeOperation = "screen"; 
             ctx.drawImage(designImg, left, top, w, h);
-
+            
             callback(canvas.toDataURL("image/png"));
           };
           designImg.onerror = () => callback(canvas.toDataURL("image/png"));
@@ -2939,17 +2922,30 @@
           Đang tải...
         </h3>
 
-        <div class="mockup-preview-wrap" id="mockup-preview-wrap">
-          <div class="preview-color-layer" id="mockup-color-layer"></div>
-
-          <img class="preview-base" id="mockup-preview-base" src="" alt="" />
-
-          <img
-            class="preview-design"
-            id="mockup-preview-design"
-            src=""
-            alt=""
-          />
+        <div
+          class="mockup-preview-wrap"
+          id="mockup-preview-wrap"
+          style="overflow: hidden; border-radius: 16px"
+        >
+          <div
+            id="mockup-zoom-layer"
+            style="
+              position: relative;
+              width: 100%;
+              height: 100%;
+              transform: scale(1.35);
+              transform-origin: center;
+            "
+          >
+            <div class="preview-color-layer" id="mockup-color-layer"></div>
+            <img class="preview-base" id="mockup-preview-base" src="" alt="" />
+            <img
+              class="preview-design"
+              id="mockup-preview-design"
+              src=""
+              alt=""
+            />
+          </div>
         </div>
         <a
           class="mockup-download-btn"
