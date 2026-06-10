@@ -11,3 +11,5 @@ __pycache__/
 
 # Thư mục lưu ảnh sinh ra (để Git không bị nặng)
 outputs/
+design_outputs/
+mockups_outputs/
