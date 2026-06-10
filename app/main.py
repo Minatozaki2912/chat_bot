@@ -202,13 +202,15 @@ def call_conversation_api(
         "reasoning": {"effort": config.REASONING_EFFORT},
     }
 
-    l1 = messages[0]["content"]
     total_msgs = len(messages)
     history_pairs = len(history) // 2
+    # content là list[dict] nên lấy text từ phần tử đầu để hash
+    l1_content = messages[0]["content"]
+    l1_text = l1_content[0]["text"] if isinstance(l1_content, list) else l1_content
     print(
         f"📤 [Chat] session={session_id[:12]} | "
         f"msgs={total_msgs} (history={history_pairs} turns) | "
-        f"L1_hash={hashlib.md5(l1.encode()).hexdigest()[:8]}"
+        f"L1_hash={hashlib.md5(l1_text.encode()).hexdigest()[:8]}"
     )
 
     try:
@@ -705,4 +707,4 @@ async def save_mockup_endpoint(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)   
