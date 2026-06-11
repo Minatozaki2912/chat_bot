@@ -54,54 +54,87 @@ def get_valid_image_url(image_path_or_url):
 
 
 # =====================================================================
-# LOAD SỔ TAY RAG (CHÍNH SÁCH BÁN HÀNG)
+# KHỞI ĐỘNG: ĐỌC TẤT CẢ FILE LUẬT — CHỈ 1 LẦN DUY NHẤT
 # =====================================================================
+print("━" * 60)
+print("🚀 [STARTUP] Đang tải các file luật vào bộ nhớ...")
+
 KNOWLEDGE_FILE = "app/knowledge.json"
 KNOWLEDGE_DATA = ""
 try:
     with open(KNOWLEDGE_FILE, "r", encoding="utf-8") as f:
         KNOWLEDGE_DATA = f.read()
+    print(f"  ✅ knowledge.json       — {len(KNOWLEDGE_DATA):,} chars")
 except Exception as e:
     KNOWLEDGE_DATA = "No policy data available."
+    print(f"  ❌ knowledge.json       — Lỗi: {e}")
 
-# =====================================================================
-# [NEW] LOAD RAG TEMPLATE (TỪ ĐIỂN PHÉP THUẬT MIX ẢNH)
-# =====================================================================
 TEMPLATES_FILE = "app/templates.json"
 TEMPLATES_DATA = {}
 try:
     with open(TEMPLATES_FILE, "r", encoding="utf-8") as f:
         TEMPLATES_DATA = json.load(f)
+    _names = [v.get("name", k) for k, v in TEMPLATES_DATA.items()]
+    print(f"  ✅ templates.json       — {len(TEMPLATES_DATA)} templates: {', '.join(_names)}")
 except Exception as e:
-    print(f"Lỗi đọc file templates: {e}")
+    print(f"  ❌ templates.json       — Lỗi: {e}")
+
+print(f"  ✅ prompts.py           — {len(prompts.SYSTEM_PROMPT):,} chars")
 
 
 # =====================================================================
 # 1. BỘ NÃO ĐIỀU PHỐI (CONVERSATION API - TỐI ƯU PROMPT CACHING)
 # =====================================================================
 
-# Cache module-level: chỉ rebuild base prompt khi sang ngày mới
+# THÊM 2 DÒNG NÀY VÀO NGAY TRÊN ĐẦU HÀM
 _CACHED_DATE_STR = None
 _BASE_SYSTEM_PROMPT = None
 
-
-def _get_base_system_prompt() -> str:
+def _get_base_system_prompt(force_reload: bool = False) -> str:
     """
-    Trả về base system prompt (SYSTEM_PROMPT + KNOWLEDGE_DATA).
-    Chỉ rebuild 1 lần/ngày — đảm bảo byte-for-byte giống nhau giữa
-    mọi request trong cùng ngày → cache hit tối đa cho phần nặng nhất.
+    Build Base System Prompt.
+    Nếu force_reload=True, sẽ đọc lại toàn bộ file luật từ ổ cứng để cập nhật thay đổi mới nhất.
     """
-    global _CACHED_DATE_STR, _BASE_SYSTEM_PROMPT
+    global _CACHED_DATE_STR, _BASE_SYSTEM_PROMPT, KNOWLEDGE_DATA, TEMPLATES_DATA
     today_str = datetime.now().strftime("%A, %B %d, %Y")
-    if _CACHED_DATE_STR != today_str or _BASE_SYSTEM_PROMPT is None:
+    
+    if force_reload or _CACHED_DATE_STR != today_str or _BASE_SYSTEM_PROMPT is None:
         _CACHED_DATE_STR = today_str
+
+        # ĐỌC LẠI FILE TỪ Ổ CỨNG KHI ĐƯỢC YÊU CẦU
+        try:
+            with open("app/knowledge.json", "r", encoding="utf-8") as f:
+                KNOWLEDGE_DATA = f.read()
+            with open("app/templates.json", "r", encoding="utf-8") as f:
+                TEMPLATES_DATA = json.load(f)
+        except Exception as e:
+            print(f"⚠️ Lỗi khi load lại file luật: {e}")
+
+        # Đóng gói thành Mega Prompt
+        templates_str = ""
+        if isinstance(TEMPLATES_DATA, dict):
+            for t_id, t_data in TEMPLATES_DATA.items():
+                rule = t_data.get('master_prompt_rule', '')
+                templates_str += f"\n--- [TEMPLATE ID: {t_id}] ---\n{rule}\n"
+
         _BASE_SYSTEM_PROMPT = f"""{prompts.SYSTEM_PROMPT}
 
 ### [SYSTEM KNOWLEDGE BASE - MANDATORY READ]
 - Reference Date: {today_str}
-{KNOWLEDGE_DATA}"""
-        print(f"🔄 [Cache] Base system prompt rebuilt for: {today_str}")
+{KNOWLEDGE_DATA}
+
+### [MAGIC TEMPLATES DICTIONARY]
+Below are the predefined rules for specific design templates. 
+When the user or system triggers a specific TEMPLATE ID in the chat, you MUST silently apply its exact rule from this dictionary to process the images and generate the master_prompt:
+{templates_str}
+"""
+        print(f"🔄 [Cache] Megaprompt loaded and rebuilt. Force reload: {force_reload}")
+    
     return _BASE_SYSTEM_PROMPT
+
+
+# Kích hoạt build ngay khi import
+_get_base_system_prompt()
 
 
 def call_conversation_api(
@@ -116,17 +149,18 @@ def call_conversation_api(
     last_entities = database.get_last_entities(session_id)
     history = database.get_history(session_id) 
 
-    messages = [{"role": "system", "content": _get_base_system_prompt()}]
-
-    if template_id and template_id in TEMPLATES_DATA:
-        rule = TEMPLATES_DATA[template_id].get("master_prompt_rule", "")
-        messages.append(
+    system_message = {
+        "role": "system",
+        "content": [
             {
-                "role": "system",
-                "content": f"### [ACTIVE TEMPLATE RULE: {template_id}]\n{rule}",
+                "type": "text",
+                "text": _get_base_system_prompt(),
+                "cache_control": {"type": "ephemeral"},
             }
-        )
+        ],
+    }
 
+    messages = [system_message]
     messages.extend(history)
 
     user_content = []
@@ -207,9 +241,12 @@ def call_conversation_api(
     # content là list[dict] nên lấy text từ phần tử đầu để hash
     l1_content = messages[0]["content"]
     l1_text = l1_content[0]["text"] if isinstance(l1_content, list) else l1_content
+    is_new_session = history_pairs == 0
     print(
-        f"📤 [Chat] session={session_id[:12]} | "
-        f"msgs={total_msgs} (history={history_pairs} turns) | "
+        f"📤 [Chat] session={session_id} | "
+        f"{'🆕 new session' if is_new_session else f'turn {history_pairs + 1}'} | "
+        f"template={template_id or 'none'} | "
+        f"cache={'MISS (first)' if is_new_session else 'HIT'} | "
         f"L1_hash={hashlib.md5(l1_text.encode()).hexdigest()[:8]}"
     )
 
@@ -489,7 +526,63 @@ except Exception as e:
 async def get_mockups():
     return JSONResponse(content=MOCKUPS_DATA)
 
+@app.post("/api/warmup-cache")
+async def warmup_cache_endpoint(request: Request):
+    """
+    API tàng hình: Vừa để nạp lại file, vừa bắn request lên Grok để duy trì sự sống cho Cache.
+    """
+    try:
+        # Lấy tham số xem có cần đọc lại file không
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+        force = body.get("force_reload", False)
 
+        system_message = {
+            "role": "system",
+            "content": [
+                {
+                    "type": "text",
+                    "text": _get_base_system_prompt(force_reload=force),
+                    "cache_control": {"type": "ephemeral"},
+                }
+            ],
+        }
+        
+        messages = [system_message]
+        
+        payload = {
+            "model": config.CONVERSATION_MODEL,
+            "messages": messages,
+            "max_tokens": 1, # Vẫn giữ nguyên ép ngắt lời sớm để tốn 0đ
+            "temperature": config.CHAT_TEMPERATURE,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "pod_output",
+                    "strict": True,
+                    "schema": prompts.JSON_SCHEMA,
+                },
+            },
+            "store": config.STORE_CONTEXT,
+            "reasoning": {"effort": config.REASONING_EFFORT},
+        }
+        
+        headers = {
+            "Authorization": f"Bearer {config.XAI_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        
+        requests.post(
+            f"{config.XAI_BASE_URL}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=5
+        )
+        print("🔥 [Cache Warming] Đã mồi & gia hạn Prompt Caching thành công!")
+        return JSONResponse(content={"status": "warmed_up"})
+    except Exception as e:
+        print(f"⚠️ [Cache Warming] Bỏ qua lỗi mồi cache: {e}")
+        return JSONResponse(content={"status": "skipped"})
+    
 @app.post("/chat")
 async def chat_endpoint(request: Request):
     data = await request.json()
@@ -501,6 +594,8 @@ async def chat_endpoint(request: Request):
 
     if not session_id:
         session_id = f"session_{int(time.time())}_{hash(str(request.client.host))}"
+        print(f"\U0001f195 [Session] New session created: {session_id[:24]}...")
+        print(f"🆕 [Session] New session created: {session_id[:24]}...")
 
     ai_response = call_conversation_api(
         user_input, session_id, image_list, last_gen_url, template_id
@@ -707,4 +802,4 @@ async def save_mockup_endpoint(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)   
+    uvicorn.run(app, host="127.0.0.1", port=8000)

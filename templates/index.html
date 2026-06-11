@@ -1160,7 +1160,32 @@
     </div>
 
     <script>
-      let sessionId = `user_${Date.now()}`;
+      // --- HỆ THỐNG GIA HẠN CACHE 5 PHÚT (CACHE KEEP-ALIVE) ---
+      let idleTimer;
+      // Đặt 4.5 phút (270,000 ms) để an toàn bắn request trước khi Cache 5 phút của AI bị chết
+      const IDLE_TIME_LIMIT = 4.5 * 60 * 1000; 
+
+      function resetIdleTimer() {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+          console.log("⏳ Khách treo máy 4.5 phút. Đang nạp lại luật và gia hạn Cache...");
+          fetch("/api/warmup-cache", { 
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ force_reload: true }) // Ra lệnh Backend đọc lại file
+          }).catch(e => console.log("Lỗi gia hạn cache"));
+          
+          // Sau khi gia hạn xong, tự động thiết lập lại đồng hồ đếm ngược tiếp
+          resetIdleTimer(); 
+        }, IDLE_TIME_LIMIT);
+      }
+      // Mỗi lần load trang = 1 session mới, không bao giờ trùng
+      // Dùng sessionStorage: Tab nào ID đó. Đóng tab là tự động hủy, F5 vẫn giữ nguyên.
+      let sessionId = sessionStorage.getItem("sessionId");
+      if (!sessionId) {
+        sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        sessionStorage.setItem("sessionId", sessionId);
+      }
       let selectedTemplateId = null;
       let templateImage1 = null; // Ảnh chủ thể
       let templateImage2 = null; // Ảnh Style
@@ -1729,6 +1754,7 @@
       }
       // HÀM BẮN API RIÊNG CHO TEMPLATE ĐỂ TRUYỀN ID XUỐNG BACKEND
       async function sendTemplateMessage(text, templateId, imagesBase64) {
+        resetIdleTimer();
         currentImagesBase64 = []; // Reset để không bị dính vào luồng chat thường
         hasUploadedImageInSession = true;
         imageForNextRender = imagesBase64; // Giữ ảnh Chủ Thể làm base dự phòng
@@ -1897,6 +1923,7 @@
       }
 
       async function sendMessage() {
+        resetIdleTimer();
         const text = msgInput.value.trim();
         if (!text && currentImagesBase64.length === 0) return;
 
@@ -2144,6 +2171,14 @@
       }
 
       function selectTemplate(templateId, templateName) {
+        // [CẬP NHẬT MỚI]: Khi bấm vào Template, lập tức xóa sạch lịch sử chat cũ trên Server 
+        // để bắt đầu luồng Template mới tinh (nhưng vẫn giữ nguyên Session ID)
+        fetch("/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId }),
+        }).catch(e => console.error("Lỗi reset backend:", e));
+
         selectedTemplateId = templateId;
         templateImage1 = null;
         templateImage2 = null;
@@ -2704,11 +2739,10 @@
         }
       }
 
+      // SỬA
       async function clearChat() {
         if (confirm("Xóa hết cuộc trò chuyện và bắt đầu ý tưởng mới?")) {
-          const oldSession = sessionId;
-          sessionId = `user_${Date.now()}`;
-
+          // Không tạo session mới — giữ nguyên sessionId
           messagesContainer.innerHTML = "";
           removePreview();
           surveyCompleted = false;
@@ -2716,23 +2750,19 @@
           lastGeneratedImageUrl = null;
           hasUploadedImageInSession = false;
           sessionGallery = [];
-          imageForNextRender = null; // Reset biến bảo lưu
+          imageForNextRender = null;
 
           try {
             await fetch("/reset", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ session_id: oldSession }),
+              body: JSON.stringify({ session_id: sessionId }),  // session cũ, chỉ xóa history
             });
           } catch (e) {}
 
-          addMessage(
-            "ai",
-            "Hey bestie! I'm your POD design assistant ✨<br>What kind of apparel are we creating today? Tell me your ideas or drop an image!",
-          );
+          addMessage("ai", "Hey bestie! I'm your POD design assistant ✨<br>What kind of apparel are we creating today? Tell me your ideas or drop an image!");
         }
       }
-
       msgInput.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
@@ -2741,6 +2771,21 @@
       });
 
       window.onload = async function () {
+        // Khởi động đồng hồ đếm ngược và mồi cache lần đầu
+        fetch("/api/warmup-cache", { method: "POST" }).catch(e => console.log("Warmup skipped"));
+        resetIdleTimer();
+        // [CẬP NHẬT MỚI]: Bắn tín hiệu ngầm báo Backend mồi Prompt Caching ngay lập tức
+        fetch("/api/warmup-cache", { method: "POST" }).catch(e => console.log("Warmup skipped"));
+
+        // Xóa history chat cũ trên server (F5 hoặc reload) — giữ nguyên sessionId
+        try {
+          await fetch("/reset", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId }),
+          });
+        } catch (e) {}
+
         addMessage(
           "ai",
           "Hey bestie! I'm your POD design assistant ✨<br>What kind of apparel are we creating today? Tell me your ideas, drop an image, or pick a Magic Template below!",
