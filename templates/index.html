@@ -2155,9 +2155,47 @@
 
       let selectedStyleText = ""; // Biến lưu trữ đoạn text miêu tả của style được chọn
 
+      function handleStyleCustomUpload(input, templateId) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            // Resize giữ tỷ lệ, không pad
+            const MAX = 800;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+              const r = Math.min(MAX/w, MAX/h);
+              w = Math.round(w*r); h = Math.round(h*r);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+            const b64 = canvas.toDataURL("image/jpeg", 0.9);
+
+            // Lưu ảnh style vào templateImage2 nhưng KHÔNG thêm vào currentImagesBase64
+            templateImage2 = b64;
+            // Xóa selection thư viện (chỉ dùng 1 trong 2)
+            selectedStyleText = "";
+            const grid = document.getElementById(`style-grid-${templateId}`);
+            if (grid) grid.querySelectorAll(".style-lib-item").forEach(el => el.style.borderColor = "transparent");
+            // Cập nhật label
+            const label = document.getElementById(`custom-style-label-${templateId}`);
+            if (label) label.textContent = "✅ " + file.name.substring(0, 20);
+            console.log("🖼️ Custom style image loaded — will be analyzed, NOT sent to image gen");
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
       function selectStyleImage(url, index, templateId) {
         // THAY ĐỔI CỐT LÕI: Lấy đoạn text miêu tả thay vì lấy URL ảnh làm mẫu gửi lên AI
         selectedStyleText = STYLE_LIBRARY[index].description;
+        templateImage2 = null; // Xóa custom upload nếu có
+        const customLabel = document.getElementById(`custom-style-label-${templateId}`);
+        if (customLabel) customLabel.textContent = "Chọn ảnh style...";
 
         // Vẫn làm hiệu ứng viền sáng xanh để người dùng biết mình đang chọn hình nào ngoài UI
         const grid = document.getElementById(`style-grid-${templateId}`);
@@ -2214,24 +2252,32 @@
                 </div>
             `;
         } else if (isStyleTransfer) {
-          // UI cho luồng mới: 1 Ô ảnh gốc duy nhất + Thư viện ảnh chọn Style
+          // UI: ảnh Subject + chọn style từ thư viện HOẶC upload ảnh style tùy chỉnh
           uploadBoxesHtml = `
                 <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
+                <input type="file" id="file-tpl-style-custom" accept="image/*" style="display:none;" onchange="handleStyleCustomUpload(this, '${templateId}')">
                 <div class="upload-boxes-container" style="justify-content: flex-start;">
                     <div class="upload-box" style="flex: 0 0 100px; height: 100px;" onclick="document.getElementById('file-tpl-1').click()">
                         <span style="font-size: 24px; margin-bottom: 8px;">👱‍♂️</span>
-                        <span style="font-size: 11px; color: #aaa; text-align: center;">Ảnh gốc</span>
+                        <span style="font-size: 11px; color: #aaa; text-align: center;">Ảnh chủ thể</span>
                         <img id="preview-tpl-1">
                     </div>
                     
                     <div style="flex: 1; padding-left: 12px; border-left: 1px solid #333; overflow: hidden;">
-                        <div style="font-size: 12px; color: #aaa; margin-bottom: 8px;">🎨 Chọn Style từ thư viện:</div>
-                        <div style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; max-width: 100%; scroll-behavior: smooth;" id="style-grid-${templateId}">
+                        <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">🎨 Chọn Style từ thư viện:</div>
+                        <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; max-width: 100%; scroll-behavior: smooth;" id="style-grid-${templateId}">
                             ${STYLE_LIBRARY.map(
                               (item, idx) => `
-                                <img src="${item.url}" class="style-lib-item" id="style-img-${idx}" onclick="selectStyleImage('${item.url}', ${idx}, '${templateId}')" style="width: 65px; height: 65px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; object-fit: cover; flex-shrink: 0; transition: 0.2s;">
+                                <img src="${item.url}" class="style-lib-item" id="style-img-${idx}" onclick="selectStyleImage('${item.url}', ${idx}, '${templateId}')" style="width: 60px; height: 60px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; object-fit: cover; flex-shrink: 0; transition: 0.2s;">
                             `,
                             ).join("")}
+                        </div>
+                        <div style="margin-top: 8px; border-top: 1px dashed #333; padding-top: 8px;">
+                            <div style="font-size: 12px; color: #aaa; margin-bottom: 6px;">✨ Hoặc upload ảnh style của cậu:</div>
+                            <div id="custom-style-box-${templateId}" onclick="document.getElementById('file-tpl-style-custom').click()" style="display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border:1px dashed #555; border-radius:8px; cursor:pointer; font-size:12px; color:#aaa; transition:0.2s;" onmouseover="this.style.borderColor='#00f5d4'" onmouseout="this.style.borderColor='#555'">
+                                <span>📁</span>
+                                <span id="custom-style-label-${templateId}">Chọn ảnh style...</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2337,7 +2383,7 @@
       }
 
       // XỬ LÝ KHI KHÁCH BẤM "BẮT ĐẦU HÔ BIẾN"
-      function submitTemplateFlow(templateId) {
+      async function submitTemplateFlow(templateId) {
         let isMultiMerge = templateId === "multi_subject_merge";
         let isStyleTransfer = templateId === "style_transfer";
         surveyCompleted = false;
@@ -2348,10 +2394,8 @@
             alert("Cậu nhớ tải ảnh chủ thể lên nha! 🥺");
             return;
           }
-          if (!selectedStyleText) {
-            alert(
-              "Cậu nhớ bấm chọn 1 ảnh phong cách từ thư viện Style nha! 🎨",
-            );
+          if (!selectedStyleText && !templateImage2) {
+            alert("Cậu nhớ chọn 1 style từ thư viện hoặc upload ảnh style của cậu nha! 🎨");
             return;
           }
         } else {
@@ -2366,40 +2410,58 @@
         const note = noteInput ? noteInput.value.trim() : "";
 
         if (isMultiMerge) {
-          finalMessage =
-            "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
+          finalMessage = "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
           if (note) {
             finalMessage += `\n[USER REQUEST - STYLE, POSE & QUOTE]: "${note}". \n[INSTRUCTION]: Hãy đọc yêu cầu này. Nếu khách có chỉ định style và dáng đứng, hãy áp dụng. NẾU khách có gõ kèm một câu quote cụ thể, hãy dùng nó. NẾU KHÔNG CÓ QUOTE CỤ THỂ, bạn BẮT BUỘC phải tự động sáng tạo ra 1 câu quote ngắn gọn, hài hước hoặc ý nghĩa dựa trên các nhân vật và style, sau đó đưa vào in lên áo!`;
           } else {
             finalMessage += `\n[USER REQUEST]: (Để trống). \n[INSTRUCTION]: Khách không nhập gì cả. Bạn hãy TỰ ĐỘNG chọn Style, dáng đứng phù hợp nhất. ĐỒNG THỜI, BẮT BUỘC phải tự động sáng tạo ra 1 câu quote (chữ) thật ngầu hoặc dễ thương phù hợp với các nhân vật để in lên áo!`;
           }
         } else if (isStyleTransfer) {
-          // BẮN TEXT MÔ TẢ RA KHUNG TRÒ TRUYỆN ĐỂ PROMPT GỐC ĐỌC ĐƯỢC CONTEXT STYLE
-          finalMessage = `Mình đã tải ảnh và chọn style từ thư viện rồi. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Dùng ảnh 1 làm chủ thể (Main Subject) và vẽ lại theo mô tả phong cách nghệ thuật (Style Reference Text) sau đây: "${selectedStyleText}". Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.`;
+          // Nếu upload ảnh style tùy chỉnh → gọi /analyze-style để lấy text mô tả
+          if (!selectedStyleText && templateImage2) {
+            addMessage("ai", "⏳ Đang phân tích phong cách nghệ thuật từ ảnh style...");
+            try {
+              const analyzeRes = await fetch("/analyze-style", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ style_image: templateImage2 }),
+              });
+              const analyzeData = await analyzeRes.json();
+              if (analyzeData.style_text) {
+                selectedStyleText = analyzeData.style_text;
+                console.log("🎨 Style analyzed:", selectedStyleText);
+              } else {
+                addMessage("ai", "❌ Không phân tích được ảnh style. Cậu thử chọn ảnh khác nha!");
+                return;
+              }
+            } catch (e) {
+              addMessage("ai", "❌ Lỗi kết nối khi phân tích style. Thử lại nhé!");
+              return;
+            }
+          }
+
+          // Lúc này selectedStyleText luôn có giá trị (từ thư viện hoặc từ analyze)
+          // Chỉ gửi ảnh subject — ảnh style TUYỆT ĐỐI không gửi cho AI chat hay AI tạo ảnh
+          currentImagesBase64 = [templateImage1];
+          finalMessage = `Mình đã tải ảnh chủ thể rồi. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Dùng ảnh 1 làm chủ thể (Main Subject) và vẽ lại theo mô tả phong cách nghệ thuật (Style Reference Text) sau đây: "${selectedStyleText}". Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.`;
           if (note) {
             finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
           } else {
-            finalMessage += `\nKhông cần in chữ lên áo (NO_TEXT).`;
+            finalMessage += `\n[AUTO-QUOTE REQUIRED]: Khách không nhập quote. Dựa vào hình ảnh chủ thể và phong cách nghệ thuật "${selectedStyleText}", hãy BẮT BUỘC tự sáng tạo 1 câu quote ngắn gọn (3-8 từ), phù hợp với nhân vật/chủ thể, có cảm xúc hoặc hài hước, rồi in lên áo. KHÔNG được để trống chữ.`;
           }
         } else {
           if (note) {
             finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
           } else {
-            finalMessage += `\nKhông cần in chữ lên áo (NO_TEXT).`;
+            finalMessage += `\n[AUTO-QUOTE REQUIRED]: Khách không nhập quote. Dựa vào hình ảnh chủ thể và style đang dùng, hãy BẮT BUỘC tự sáng tạo 1 câu quote ngắn gọn (3-8 từ), phù hợp với nhân vật/chủ thể, có cảm xúc hoặc hài hước, rồi in lên áo. KHÔNG được để trống chữ.`;
           }
+          currentImagesBase64 = [templateImage1, templateImage2];
+          if (templateImage3) currentImagesBase64.push(templateImage3);
         }
 
         const zone = document.getElementById(`tpl-zone-${templateId}`);
         if (zone) {
           zone.outerHTML = `<div style="margin-top:8px; font-size:13px; color:#00f5d4;">Đã xác nhận dữ liệu hình ảnh ✔️</div>`;
-        }
-
-        if (isStyleTransfer) {
-          // ĐÚNG YÊU CẦU: Chỉ cho phép nạp duy nhất 1 tấm ảnh Subject vào danh sách gửi đi
-          currentImagesBase64 = [templateImage1];
-        } else {
-          currentImagesBase64 = [templateImage1, templateImage2];
-          if (templateImage3) currentImagesBase64.push(templateImage3);
         }
 
         addMessage("user", finalMessage, currentImagesBase64);
@@ -2414,7 +2476,12 @@
         // Xây dựng danh sách reference images
         let referenceImages = [];
 
-        if (Array.isArray(imageForNextRender)) {
+        // Nếu là style_transfer với upload tùy chỉnh → chỉ lấy ảnh subject (index 0)
+        // SỬA
+        if (selectedTemplateId === "style_transfer") {
+          // Style transfer: luôn chỉ gửi ảnh subject — ảnh style đã được convert thành text
+          referenceImages = templateImage1 ? [templateImage1] : [];
+        } else if (Array.isArray(imageForNextRender)) {
           referenceImages = [...imageForNextRender];
         } else if (imageForNextRender) {
           referenceImages = [imageForNextRender];

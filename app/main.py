@@ -15,6 +15,7 @@ from datetime import datetime
 import app.config as config
 import app.database as database
 import app.prompts as prompts
+import asyncio
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -528,11 +529,7 @@ async def get_mockups():
 
 @app.post("/api/warmup-cache")
 async def warmup_cache_endpoint(request: Request):
-    """
-    API tàng hình: Vừa để nạp lại file, vừa bắn request lên Grok để duy trì sự sống cho Cache.
-    """
     try:
-        # Lấy tham số xem có cần đọc lại file không
         body = await request.json() if request.headers.get("content-type") == "application/json" else {}
         force = body.get("force_reload", False)
 
@@ -546,13 +543,11 @@ async def warmup_cache_endpoint(request: Request):
                 }
             ],
         }
-        
-        messages = [system_message]
-        
+
         payload = {
             "model": config.CONVERSATION_MODEL,
-            "messages": messages,
-            "max_tokens": 1, # Vẫn giữ nguyên ép ngắt lời sớm để tốn 0đ
+            "messages": [system_message],
+            "max_tokens": 1,
             "temperature": config.CHAT_TEMPERATURE,
             "response_format": {
                 "type": "json_schema",
@@ -565,20 +560,28 @@ async def warmup_cache_endpoint(request: Request):
             "store": config.STORE_CONTEXT,
             "reasoning": {"effort": config.REASONING_EFFORT},
         }
-        
+
         headers = {
             "Authorization": f"Bearer {config.XAI_API_KEY}",
             "Content-Type": "application/json",
         }
-        
-        requests.post(
-            f"{config.XAI_BASE_URL}/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=5
-        )
-        print("🔥 [Cache Warming] Đã mồi & gia hạn Prompt Caching thành công!")
-        return JSONResponse(content={"status": "warmed_up"})
+
+        # Chạy nền — không chờ kết quả, không block
+        def _fire():
+            try:
+                requests.post(
+                    f"{config.XAI_BASE_URL}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=60,  # timeout dài hơn vì chạy nền
+                )
+                print("🔥 [Cache Warming] Đã mồi & gia hạn Prompt Caching thành công!")
+            except Exception as e:
+                print(f"⚠️ [Cache Warming] Lỗi nền: {e}")
+
+        asyncio.get_event_loop().run_in_executor(None, _fire)
+        return JSONResponse(content={"status": "warming_in_background"})
+
     except Exception as e:
         print(f"⚠️ [Cache Warming] Bỏ qua lỗi mồi cache: {e}")
         return JSONResponse(content={"status": "skipped"})
@@ -798,6 +801,79 @@ async def save_mockup_endpoint(request: Request):
     except Exception as e:
         print(f"❌ Lỗi khi lưu mockup: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.post("/analyze-style")
+async def analyze_style_endpoint(request: Request):
+    """
+    Nhận ảnh style (base64), gọi AI chat để phân tích kỹ thuật nghệ thuật,
+    trả về style description text dùng cho image generation.
+    Tuyệt đối KHÔNG gửi ảnh này vào image generation API.
+    """
+    data = await request.json()
+    style_image_b64 = data.get("style_image")
+
+    if not style_image_b64:
+        return JSONResponse(content={"error": "Missing style_image"}, status_code=400)
+
+    # Đảm bảo format đúng
+    if not style_image_b64.startswith("data:"):
+        style_image_b64 = f"data:image/jpeg;base64,{style_image_b64}"
+
+    analyze_prompt = (
+        "[STYLE ANALYSIS TASK]: Analyze the artistic technique of this image. "
+        "Describe ONLY the visual craft medium and rendering style — NOT the subject, characters, or content. "
+        "Output a compact style descriptor (max 30 words) suitable for an image generation prompt. "
+        "Focus on: drawing medium, line art style, coloring technique, texture, shading method. "
+        "Examples: 'bold cel-shaded anime ink outlines, vibrant flat colors' or "
+        "'soft watercolor washes, wet-on-wet bleeding edges, charcoal sketch lines'. "
+        "Return ONLY the style descriptor string, nothing else."
+    )
+
+    # Gọi AI chat với chỉ ảnh style — session riêng biệt, không lưu history
+    temp_session = f"style_analyze_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+
+    headers = {
+        "Authorization": f"Bearer {config.XAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": config.CONVERSATION_MODEL,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a visual art style analyst. Analyze artistic techniques only.",
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": analyze_prompt},
+                    {"type": "image_url", "image_url": {"url": style_image_b64}},
+                ],
+            },
+        ],
+        "max_tokens": 120,
+        "temperature": 0.3,
+    }
+
+    try:
+        resp = requests.post(
+            f"{config.XAI_BASE_URL}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        style_text = result["choices"][0]["message"]["content"].strip()
+        # Bỏ dấu ngoặc kép nếu AI tự thêm vào
+        style_text = style_text.strip('"').strip("'")
+        print(f"🎨 [Style Analysis] Result: {style_text[:80]}...")
+        return JSONResponse(content={"style_text": style_text})
+    except Exception as e:
+        print(f"❌ [Style Analysis] Error: {e}")
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
 
 if __name__ == "__main__":
     import uvicorn
