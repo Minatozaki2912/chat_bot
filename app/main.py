@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import uuid
 import requests
 import time
@@ -15,6 +16,7 @@ from datetime import datetime
 import app.config as config
 import app.database as database
 import app.prompts as prompts
+import app.template_prompt as template_prompt
 import asyncio
 
 app = FastAPI()
@@ -91,10 +93,10 @@ print(f"  ✅ prompts.py           — {len(prompts.SYSTEM_PROMPT):,} chars")
 _CACHED_DATE_STR = None
 _BASE_SYSTEM_PROMPT = None
 
-def _get_base_system_prompt(force_reload: bool = False) -> str:
+def _get_base_system_prompt(template_id: str = None, force_reload: bool = False) -> str:
     """
-    Build Base System Prompt.
-    Nếu force_reload=True, sẽ đọc lại toàn bộ file luật từ ổ cứng để cập nhật thay đổi mới nhất.
+    Build Base System Prompt. 
+    Tự động chia tách bộ não xử lý dựa trên chế độ chat thường hoặc template.
     """
     global _CACHED_DATE_STR, _BASE_SYSTEM_PROMPT, KNOWLEDGE_DATA, TEMPLATES_DATA
     today_str = datetime.now().strftime("%A, %B %d, %Y")
@@ -102,7 +104,7 @@ def _get_base_system_prompt(force_reload: bool = False) -> str:
     if force_reload or _CACHED_DATE_STR != today_str or _BASE_SYSTEM_PROMPT is None:
         _CACHED_DATE_STR = today_str
 
-        # ĐỌC LẠI FILE TỪ Ổ CỨNG KHI ĐƯỢC YÊU CẦU
+        # Đọc lại file từ ổ cứng khi có cập nhật mới
         try:
             with open("app/knowledge.json", "r", encoding="utf-8") as f:
                 KNOWLEDGE_DATA = f.read()
@@ -111,31 +113,41 @@ def _get_base_system_prompt(force_reload: bool = False) -> str:
         except Exception as e:
             print(f"⚠️ Lỗi khi load lại file luật: {e}")
 
-        # Đóng gói thành Mega Prompt
+        # Đóng gói kho dữ liệu Template thành chuỗi văn bản
         templates_str = ""
         if isinstance(TEMPLATES_DATA, dict):
             for t_id, t_data in TEMPLATES_DATA.items():
                 rule = t_data.get('master_prompt_rule', '')
                 templates_str += f"\n--- [TEMPLATE ID: {t_id}] ---\n{rule}\n"
 
-        _BASE_SYSTEM_PROMPT = f"""{prompts.SYSTEM_PROMPT}
+        # === KHỐI RẼ NHÁNH PROMPT CHO QUÁ TRÌNH KIỂM THỬ ===
+        if template_id and template_id in TEMPLATES_DATA:
+            # CHẾ ĐỘ TEMPLATE KHẮT KHE: Chỉ dùng lõi luật tinh gọn của template_prompt
+            _BASE_SYSTEM_PROMPT = f"""{template_prompt.SYSTEM_PROMPT}
+
+### [SYSTEM KNOWLEDGE BASE]
+- Reference Date: {today_str}
+
+### [MAGIC TEMPLATES DICTIONARY]
+The current ACTIVE TEMPLATE ID is: {template_id}.
+You MUST read its rule from the dictionary below and apply it immediately:
+{templates_str}
+"""
+            print(f"🔄 [Cache] Chế độ TEMPLATE được kích hoạt cho ID: {template_id}")
+        else:
+            # CHẾ ĐỘ CHAT TỰ DO / BRAINSTORM: Dùng file prompts.py gốc chứa đầy đủ 8 chiến lược
+            _BASE_SYSTEM_PROMPT = f"""{prompts.SYSTEM_PROMPT}
 
 ### [SYSTEM KNOWLEDGE BASE - MANDATORY READ]
 - Reference Date: {today_str}
 {KNOWLEDGE_DATA}
 
 ### [MAGIC TEMPLATES DICTIONARY]
-Below are the predefined rules for specific design templates. 
-When the user or system triggers a specific TEMPLATE ID in the chat, you MUST silently apply its exact rule from this dictionary to process the images and generate the master_prompt:
 {templates_str}
 """
-        print(f"🔄 [Cache] Megaprompt loaded and rebuilt. Force reload: {force_reload}")
-    
+            print(f"🔄 Chế độ CHAT TỰ DO được kích hoạt.")
+            
     return _BASE_SYSTEM_PROMPT
-
-
-# Kích hoạt build ngay khi import
-_get_base_system_prompt()
 
 
 def call_conversation_api(
@@ -150,12 +162,13 @@ def call_conversation_api(
     last_entities = database.get_last_entities(session_id)
     history = database.get_history(session_id) 
 
+    # ĐIỂM CẬP NHẬT 1: Truyền biến template_id vào hàm lấy System Prompt để rẽ nhánh bộ não
     system_message = {
         "role": "system",
         "content": [
             {
                 "type": "text",
-                "text": _get_base_system_prompt(),
+                "text": _get_base_system_prompt(template_id=template_id),
                 "cache_control": {"type": "ephemeral"},
             }
         ],
@@ -177,6 +190,10 @@ def call_conversation_api(
                 label = f"[ẢNH {idx + 1} - CHỦ THỂ SỐ {idx + 1} (SUBJECT {idx + 1})]:"
             elif template_id == "style_transfer":
                 label = "[ẢNH 1 - CHỦ THỂ (MAIN SUBJECT)]:"
+            elif template_id == "face_character_swap":
+                label = "[ẢNH 1 - CHỦ THỂ (MAIN SUBJECT TO COSPLAY)]:"
+            elif template_id == "true_subject_replacement":
+                label = "[ẢNH 1 - ẢNH GỐC, GIỮ NGUYÊN BỐI CẢNH (ORIGINAL IMAGE, KEEP BACKGROUND)]:"
             elif template_id and len(image_base64_list) == 2:
                 label = (
                     "[ẢNH 1 - CHỦ THỂ (MAIN SUBJECT)]:"
@@ -191,15 +208,15 @@ def call_conversation_api(
                 {"type": "image_url", "image_url": {"url": valid_b64_url}}
             )
 
-    if last_generated_image_url:
-        valid_b64_url = get_valid_image_url(last_generated_image_url)
-        user_content.append(
-            {
-                "type": "text",
-                "text": "[SYSTEM Context]: This is the design you generated in the previous turn. Use this as the primary visual context for requested edits.",
-            }
-        )
-        user_content.append({"type": "image_url", "image_url": {"url": valid_b64_url}})
+        if last_generated_image_url:
+            valid_b64_url = get_valid_image_url(last_generated_image_url)
+            user_content.append(
+                {
+                    "type": "text",
+                    "text": "[SYSTEM Context]: This is the design you generated in the previous turn. Use this as the primary visual context for requested edits.",
+                }
+            )
+            user_content.append({"type": "image_url", "image_url": {"url": valid_b64_url}})
 
     messages.append({"role": "user", "content": user_content})
 
@@ -221,6 +238,9 @@ def call_conversation_api(
         "x-grok-conv-id": session_id,
     }
 
+    # ĐIỂM CẬP NHẬT 2: Chọn cấu trúc Schema động tương ứng dựa theo luồng chat
+    active_schema = template_prompt.JSON_SCHEMA if template_id else prompts.JSON_SCHEMA
+
     payload = {
         "model": config.CONVERSATION_MODEL,
         "messages": messages,
@@ -230,7 +250,7 @@ def call_conversation_api(
             "json_schema": {
                 "name": "pod_output",
                 "strict": True,
-                "schema": prompts.JSON_SCHEMA,
+                "schema": active_schema,
             },
         },
         "store": config.STORE_CONTEXT,
@@ -326,25 +346,81 @@ def _to_base64_url(path: str, preprocess: bool = False) -> str | None:
     return None
 
 
+def _compress_prompt(prompt: str, limit: int = 7500) -> str:
+    """
+    Nén master_prompt thông minh: KHÔNG BAO GIỜ cắt phần miêu tả Subject.
+    Chỉ xóa bỏ các câu lệnh meta, dặn dò thừa thãi để tiết kiệm token.
+    """
+    if len(prompt) <= limit:
+        return prompt
+
+    original_len = len(prompt)
+
+    # 1. Rút gọn rule Canvas & Typography dài dòng của AI
+    prompt = re.sub(
+        r"CANVAS: uniform pure #000000 edge-to-edge.*?meta text visible\.", 
+        "Black #000000 canvas background edge-to-edge. ", 
+        prompt, flags=re.IGNORECASE | re.DOTALL
+    )
+    prompt = re.sub(
+        r"Typography:.*?never cropped.*?overflow the canvas\.",
+        r"Typography fully visible, safe padding ALL sides, never cropped. ",
+        prompt, flags=re.IGNORECASE | re.DOTALL
+    )
+
+    # Nếu vẫn quá dài, chỉ cắt phần đuôi cứng (tránh cắt đứt câu giữa chừng)
+    if len(prompt) > limit:
+        prompt = prompt[:limit]
+        last_period = max(prompt.rfind(". "), prompt.rfind(".\n"))
+        if last_period > limit - 1000:
+            prompt = prompt[:last_period + 1]
+
+    print(f"🗜️  [Prompt Compress] Smart truncated: {original_len} → {len(prompt)} chars (Subject Preserved)")
+    return prompt
+
+
 def call_image_generation(
     master_prompt: str,
     reference_images: list = None,
     is_retry: bool = False,
+    template_id: str = None,
 ):
     output_dir = os.path.join(_PROJECT_ROOT, "design_outputs")
     os.makedirs(output_dir, exist_ok=True)
 
-    pod_output_instruction = """
-    CRITICAL PRINT-ON-DEMAND REQUIREMENT:
-    - SCALE UP THE SUBJECT MASSIVELY. The character, wings, aura, or design elements MUST stretch horizontally to touch or bleed off the left and right edges. 
-    - DO NOT leave empty black margins on the sides. NO inner border, NO contained-frame effect.
-    - Pure solid BLACK background absolute hex #000000. NO gradients, NO shadows, NO environment.
-    """
+    # Rút gọn so với phiên bản cũ (~300 chars) — giữ đúng ý, bỏ verbose
+    pod_output_instruction = "CRITICAL POD: Subject fills canvas edge-to-edge, no empty side margins, no inner border. Pure solid black #000000 background, no gradients, no environment."
 
-    if is_retry:
-        full_prompt = master_prompt
+    # Đọc marker [SCENE_MODE: ...] do AI chat tự đặt ở đầu master_prompt
+    cleaned_prompt = master_prompt
+    is_full_scene_mode = False
+
+    scene_mode_match = re.match(
+        r"^\s*\[SCENE_MODE:\s*(BLACK_CANVAS|FULL_SCENE)\]\s*\n?",
+        master_prompt,
+        re.IGNORECASE,
+    )
+    if scene_mode_match:
+        is_full_scene_mode = scene_mode_match.group(1).upper() == "FULL_SCENE"
+        # Xóa marker khỏi prompt thật gửi cho AI vẽ ảnh — đây chỉ là tín hiệu nội bộ
+        cleaned_prompt = master_prompt[scene_mode_match.end():].lstrip()
     else:
-        full_prompt = master_prompt + "\n\n" + pod_output_instruction
+        # Fallback an toàn nếu AI chat quên thêm marker (model cũ hoặc lỗi)
+        LEGACY_FULL_SCENE_TEMPLATES = {"subject_replacement_layout"}
+        is_full_scene_mode = template_id in LEGACY_FULL_SCENE_TEMPLATES
+
+    skip_black_background = is_retry or is_full_scene_mode
+
+    if skip_black_background:
+        full_prompt = cleaned_prompt
+    else:
+        full_prompt = cleaned_prompt + "\n\n" + pod_output_instruction
+
+    # ── Nén prompt xuống dưới giới hạn Image API (8000 chars) ──────────────
+    original_len = len(full_prompt)
+    full_prompt = _compress_prompt(full_prompt, limit=7500)
+    if len(full_prompt) != original_len:
+        print(f"🗜️  [Prompt] {original_len} → {len(full_prompt)} chars after compression")
 
     selected_model = config.IMAGE_MODEL_EDIT if is_retry else config.IMAGE_MODEL_GEN
 
@@ -411,17 +487,23 @@ def call_image_generation(
             raise Exception("No image returned from API")
 
         print("💾 Saving raw image from Grok...")
-        # Ép vuông 1:1 — crop center nếu không vuông, tránh letterbox
+        # GIỮ NGUYÊN TỶ LỆ, PAD NỀN ĐEN NẾU KHÔNG VUÔNG ĐỂ KHÔNG BỊ CẮT CHỦ THỂ
         w, h = img_raw.size
-        if w != h:
-            side = min(w, h)
-            left = (w - side) // 2
-            top  = (h - side) // 2
-            img_raw = img_raw.crop((left, top, left + side, top + side))
-            print(f"  ✂️  Cropped {w}x{h} → {side}x{side} (center square)")
-        if img_raw.size != (1024, 1024):
-            img_raw = img_raw.resize((1024, 1024), Image.Resampling.LANCZOS)
-            print("  🔲 Resized to 1024x1024")
+        if w != 1024 or h != 1024:
+            # Thu nhỏ ảnh sao cho cạnh dài nhất = 1024, giữ nguyên tỷ lệ
+            img_raw.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+            new_w, new_h = img_raw.size
+            
+            # Tạo canvas vuông nền đen #000000 chuẩn 1024x1024
+            background = Image.new("RGB", (1024, 1024), (0, 0, 0))
+            
+            # Dán ảnh đã thu nhỏ vào chính giữa canvas
+            offset_x = (1024 - new_w) // 2
+            offset_y = (1024 - new_h) // 2
+            background.paste(img_raw, (offset_x, offset_y))
+            
+            img_raw = background
+            print(f"  🔲 Resized & Padded to 1024x1024 (from {w}x{h})")
         filename = f"preview_raw_{int(time.time())}_{uuid.uuid4().hex[:8]}.jpg"
         img_raw.save(os.path.join(output_dir, filename), format="JPEG", quality=95)
         return {"image_url": f"/design_outputs/{filename}", "error": None}
@@ -621,6 +703,7 @@ async def generate_image_endpoint(request: Request):
     master_prompt = data.get("master_prompt")
     reference_images = data.get("reference_images")
     is_retry = data.get("is_retry", False)
+    template_id = data.get("template_id")
 
     if not master_prompt:
         return JSONResponse(content={"error": "Missing master_prompt"}, status_code=400)
@@ -629,6 +712,7 @@ async def generate_image_endpoint(request: Request):
         master_prompt=master_prompt,
         reference_images=reference_images,
         is_retry=is_retry,
+        template_id=template_id,
     )
     return JSONResponse(content=img_res)
 
@@ -874,7 +958,7 @@ async def analyze_style_endpoint(request: Request):
         print(f"❌ [Style Analysis] Error: {e}")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
-
+        
 if __name__ == "__main__":
     import uvicorn
 

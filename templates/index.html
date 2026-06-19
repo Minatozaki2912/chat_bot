@@ -2087,11 +2087,26 @@
           // Hỗ trợ đọc cả key mới (image1, image2) và key cũ (subject, style)
           const img1 = tpl.ui_demo.image1 || tpl.ui_demo.subject;
           const img2 = tpl.ui_demo.image2 || tpl.ui_demo.style;
+          const isSingleImageTemplate = key === "face_character_swap" || key === "true_subject_replacement";
 
           // Đổi nhãn text linh hoạt theo loại Template
           const label1 =
-            key === "multi_subject_merge" ? "Chủ thể 1" : "Chủ thể";
+            key === "multi_subject_merge" ? "Chủ thể 1" :
+            key === "true_subject_replacement" ? "Ảnh gốc" : "Chủ thể";
           const label2 = key === "multi_subject_merge" ? "Chủ thể 2" : "Style";
+
+          const middleBoxesHtml = isSingleImageTemplate
+            ? `
+                <div class="template-math">→</div>
+            `
+            : `
+                <div class="template-math">+</div>
+                <div class="template-img-box">
+                    <img src="${img2}">
+                    <span class="template-img-label">${label2}</span>
+                </div>
+                <div class="template-math">=</div>
+            `;
 
           html += `
                 <div class="template-card" onclick="selectTemplate('${key}', '${tpl.name}')">
@@ -2101,12 +2116,7 @@
                             <img src="${img1}">
                             <span class="template-img-label">${label1}</span>
                         </div>
-                        <div class="template-math">+</div>
-                        <div class="template-img-box">
-                            <img src="${img2}">
-                            <span class="template-img-label">${label2}</span>
-                        </div>
-                        <div class="template-math">=</div>
+                        ${middleBoxesHtml}
                         <div class="template-img-box">
                             <img src="${tpl.ui_demo.result}" style="border-color: #00f5d4;">
                             <span class="template-img-label" style="color: #00f5d4;">Kết quả</span>
@@ -2225,6 +2235,9 @@
 
         let isMultiMerge = templateId === "multi_subject_merge";
         let isStyleTransfer = templateId === "style_transfer";
+        let isCosplay = templateId === "face_character_swap";
+        let isSubjectSwap = templateId === "true_subject_replacement";
+        let isLayoutMatch = templateId === "subject_replacement_layout";
 
         let uploadBoxesHtml = "";
         if (isMultiMerge) {
@@ -2282,6 +2295,30 @@
                     </div>
                 </div>
             `;
+        } else if (isCosplay) {
+          // UI: chỉ 1 ô ảnh chủ thể — tên nhân vật cosplay sẽ nhập ở ô text bên dưới
+          uploadBoxesHtml = `
+                <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
+                <div class="upload-boxes-container" style="justify-content: flex-start;">
+                    <div class="upload-box" style="flex: 0 0 100px; height: 100px;" onclick="document.getElementById('file-tpl-1').click()">
+                        <span style="font-size: 24px; margin-bottom: 8px;">👱‍♂️</span>
+                        <span style="font-size: 11px; color: #aaa; text-align: center;">Ảnh chủ thể</span>
+                        <img id="preview-tpl-1">
+                    </div>
+                </div>
+            `;
+        } else if (isSubjectSwap) {
+          // UI: chỉ 1 ô ảnh gốc (giữ nguyên bối cảnh) — yêu cầu thay chủ thể nhập ở ô text bên dưới
+          uploadBoxesHtml = `
+                <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
+                <div class="upload-boxes-container" style="justify-content: flex-start;">
+                    <div class="upload-box" style="flex: 0 0 100px; height: 100px;" onclick="document.getElementById('file-tpl-1').click()">
+                        <span style="font-size: 24px; margin-bottom: 8px;">🖼️</span>
+                        <span style="font-size: 11px; color: #aaa; text-align: center;">Ảnh gốc</span>
+                        <img id="preview-tpl-1">
+                    </div>
+                </div>
+            `;
         } else {
           uploadBoxesHtml = `
                 <input type="file" id="file-tpl-1" accept="image/*" style="display:none;" onchange="handleTemplateUpload(this, 1)">
@@ -2310,20 +2347,26 @@
               <div style="width:100%;">
                   <div class="bubble ai">
                       Cậu vừa chọn phép thuật: <strong>${templateName}</strong> 🪄<br>
-                      ${isMultiMerge ? "Tải lên các nhân vật cậu muốn ghép chung nhé (Tối đa 3 ảnh nha)!" : isStyleTransfer ? "Tải 1 ảnh chủ thể và chạm vào ảnh Style cậu thích ở bên cạnh nha!" : "Bây giờ cậu tải 2 ảnh lên ô tương ứng dưới này giúp mình nha!"}
+                      ${isMultiMerge ? "Tải lên các nhân vật cậu muốn ghép chung nhé (Tối đa 3 ảnh nha)!" : isStyleTransfer ? "Tải 1 ảnh chủ thể và chạm vào ảnh Style cậu thích ở bên cạnh nha!" : isCosplay ? "Tải 1 ảnh chủ thể, rồi cho mình biết cậu muốn cosplay thành nhân vật nào ở ô bên dưới nha!" : isSubjectSwap ? "Tải 1 ảnh gốc lên, rồi cho mình biết cậu muốn thay chủ thể trong ảnh thành gì ở ô bên dưới nha! Bối cảnh xung quanh sẽ được giữ nguyên!" : isLayoutMatch ? "Tải ảnh chủ thể và ảnh mẫu thiết kế lên nha! Mình sẽ giữ nguyên 100% bố cục, dáng đứng và chữ trên mẫu, chỉ đổi chủ thể thôi!" : "Bây giờ cậu tải 2 ảnh lên ô tương ứng dưới này giúp mình nha!"}
                   </div>
                   
                   <div class="template-upload-zone" id="tpl-zone-${templateId}">
                       ${uploadBoxesHtml}
+                      ${
+                        isLayoutMatch
+                          ? ""
+                          : `
                       <div style="margin-top: 14px;">
                           <input
                               type="text"
                               id="tpl-note-${templateId}"
                               class="survey-input"
-                              placeholder="${isMultiMerge ? "✏️ Nhập Style, dáng đứng... AI sẽ tự tạo Quote nếu để trống!" : "✏️ In thêm chữ lên áo? Nhập tên hoặc quote ở đây (có thể bỏ qua)"}"
+                              placeholder="${isMultiMerge ? "✏️ Nhập Style, dáng đứng... AI sẽ tự tạo Quote nếu để trống!" : isCosplay ? "✏️ Nhập tên nhân vật muốn cosplay (VD: Iron Man, Elsa...) — có thể thêm quote" : isSubjectSwap ? "✏️ Nhập chủ thể muốn thay (VD: 1 chú chó bull) — có thể thêm quote" : "✏️ In thêm chữ lên áo? Nhập tên hoặc quote ở đây (có thể bỏ qua)"}"
                               style="width: 100%; box-sizing: border-box;"
                           >
                       </div>
+                      `
+                      }
                       <button class="render-btn" style="width: 100%; margin-top: 12px;" onclick="submitTemplateFlow('${templateId}')">
                           🚀 Xác nhận ảnh!
                       </button>
@@ -2386,6 +2429,9 @@
       async function submitTemplateFlow(templateId) {
         let isMultiMerge = templateId === "multi_subject_merge";
         let isStyleTransfer = templateId === "style_transfer";
+        let isCosplay = templateId === "face_character_swap";
+        let isSubjectSwap = templateId === "true_subject_replacement";
+        let isLayoutMatch = templateId === "subject_replacement_layout";
         surveyCompleted = false;
 
         // Bắt lỗi upload theo từng nhánh giao diện
@@ -2396,6 +2442,11 @@
           }
           if (!selectedStyleText && !templateImage2) {
             alert("Cậu nhớ chọn 1 style từ thư viện hoặc upload ảnh style của cậu nha! 🎨");
+            return;
+          }
+        } else if (isCosplay || isSubjectSwap) {
+          if (!templateImage1) {
+            alert("Cậu nhớ tải ảnh lên nha! 🥺");
             return;
           }
         } else {
@@ -2409,7 +2460,20 @@
         const noteInput = document.getElementById(`tpl-note-${templateId}`);
         const note = noteInput ? noteInput.value.trim() : "";
 
+        if (isCosplay && !note) {
+          alert("Cậu nhớ nhập tên nhân vật muốn cosplay nha! 🎭");
+          return;
+        }
+
+        if (isSubjectSwap && !note) {
+          alert("Cậu nhớ nhập chủ thể muốn thay vào ảnh nha! 🐶");
+          return;
+        }
+
         if (isMultiMerge) {
+          // QUAN TRỌNG: phải gán currentImagesBase64 ở đây, nếu không AI sẽ không nhận được ảnh thật nào
+          currentImagesBase64 = [templateImage1, templateImage2];
+          if (templateImage3) currentImagesBase64.push(templateImage3);
           finalMessage = "Mình đã gửi các nhân vật cần ghép. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
           if (note) {
             finalMessage += `\n[USER REQUEST - STYLE, POSE & QUOTE]: "${note}". \n[INSTRUCTION]: Hãy đọc yêu cầu này. Nếu khách có chỉ định style và dáng đứng, hãy áp dụng. NẾU khách có gõ kèm một câu quote cụ thể, hãy dùng nó. NẾU KHÔNG CÓ QUOTE CỤ THỂ, bạn BẮT BUỘC phải tự động sáng tạo ra 1 câu quote ngắn gọn, hài hước hoặc ý nghĩa dựa trên các nhân vật và style, sau đó đưa vào in lên áo!`;
@@ -2447,8 +2511,20 @@
           if (note) {
             finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
           } else {
-            finalMessage += `\n[AUTO-QUOTE REQUIRED]: Khách không nhập quote. Dựa vào hình ảnh chủ thể và phong cách nghệ thuật "${selectedStyleText}", hãy BẮT BUỘC tự sáng tạo 1 câu quote ngắn gọn (3-8 từ), phù hợp với nhân vật/chủ thể, có cảm xúc hoặc hài hước, rồi in lên áo. KHÔNG được để trống chữ.`;
+            finalMessage += `\n[NO QUOTE]: Khách không nhập quote. KHÔNG tự sáng tạo hay thêm bất kỳ chữ/quote nào lên thiết kế — để 'No text or typography'.`;
           }
+        } else if (isCosplay) {
+          // Chỉ gửi 1 ảnh subject — tên nhân vật cosplay (và quote nếu có) nằm trong ô note dạng text tự do
+          currentImagesBase64 = [templateImage1];
+          finalMessage = `Mình đã tải ảnh chủ thể rồi. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Dùng ảnh 1 làm chủ thể (Main Subject) và biến hóa thành nhân vật cosplay theo yêu cầu sau: "${note}". \n[INSTRUCTION]: Đọc nội dung trên — nếu có tên một nhân vật/nhân vật nổi tiếng cụ thể, hãy dùng đúng costume/props/art style của nhân vật đó để hóa trang cho chủ thể, đồng thời thêm bối cảnh/phụ kiện nhỏ phù hợp xung quanh theo Canvas Law. Nếu trong câu có kèm một câu quote rõ ràng, hãy dùng đúng quote đó để in lên áo. NẾU KHÔNG CÓ QUOTE, bạn BẮT BUỘC tự sáng tạo 1 câu quote ngắn gọn (3-8 từ) phù hợp với nhân vật cosplay rồi in lên áo. Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.`;
+        } else if (isSubjectSwap) {
+          // Chỉ gửi 1 ảnh gốc — yêu cầu thay chủ thể (và quote nếu có) nằm trong ô note dạng text tự do
+          currentImagesBase64 = [templateImage1];
+          finalMessage = `Mình đã tải ảnh gốc rồi. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Dùng ảnh 1 làm ảnh gốc (Image 1), GIỮ NGUYÊN bối cảnh/môi trường xung quanh, và thay chủ thể chính theo yêu cầu sau: "${note}". \n[INSTRUCTION]: Đọc nội dung trên — phần mô tả chủ thể mới (vd: 'thay bằng 1 chú chó bull') phải được dùng để thay thế hoàn toàn chủ thể cũ trong khi giữ nguyên 100% bối cảnh, ánh sáng, góc nhìn của ảnh gốc. Nếu trong câu có kèm một câu quote rõ ràng, hãy dùng đúng quote đó để in lên áo. NẾU KHÔNG CÓ QUOTE, bạn BẮT BUỘC tự sáng tạo 1 câu quote ngắn gọn (3-8 từ) phù hợp rồi in lên áo. Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.`;
+        } else if (isLayoutMatch) {
+          // Chỉ gửi 2 ảnh — KHÔNG có note, KHÔNG có quote, KHÔNG auto-quote. Giữ nguyên 100% chữ/layout/pose của Image 2.
+          currentImagesBase64 = [templateImage1, templateImage2];
+          finalMessage = "Mình đã tải ảnh chủ thể và ảnh mẫu thiết kế rồi. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Dùng ảnh 1 làm chủ thể mới, ảnh 2 làm mẫu thiết kế (layout) cần giữ nguyên 100%. \n[INSTRUCTION]: KHÔNG thêm, sửa, hay tự sáng tạo bất kỳ quote/chữ nào — giữ nguyên y hệt mọi chữ/typography đã có sẵn trong ảnh 2. Chỉ thay đổi nhận diện của chủ thể chính sang chủ thể trong ảnh 1, giữ nguyên pose, bố cục, và toàn bộ phần còn lại. Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
         } else {
           if (note) {
             finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
@@ -2476,10 +2552,14 @@
         // Xây dựng danh sách reference images
         let referenceImages = [];
 
-        // Nếu là style_transfer với upload tùy chỉnh → chỉ lấy ảnh subject (index 0)
+        // Nếu là style_transfer, cosplay, hoặc subject swap → chỉ gửi 1 ảnh gốc/subject
         // SỬA
-        if (selectedTemplateId === "style_transfer") {
-          // Style transfer: luôn chỉ gửi ảnh subject — ảnh style đã được convert thành text
+        if (
+          selectedTemplateId === "style_transfer" ||
+          selectedTemplateId === "face_character_swap" ||
+          selectedTemplateId === "true_subject_replacement"
+        ) {
+          // Các template 1-ảnh: luôn chỉ gửi ảnh subject/gốc — không có ảnh thứ 2
           referenceImages = templateImage1 ? [templateImage1] : [];
         } else if (Array.isArray(imageForNextRender)) {
           referenceImages = [...imageForNextRender];
@@ -2500,6 +2580,7 @@
               reference_images: referenceImages,
               is_final: false,
               is_retry: false, // Rõ ràng
+              template_id: selectedTemplateId || null,
             }),
           });
 
@@ -2809,7 +2890,6 @@
       // SỬA
       async function clearChat() {
         if (confirm("Xóa hết cuộc trò chuyện và bắt đầu ý tưởng mới?")) {
-          // Không tạo session mới — giữ nguyên sessionId
           messagesContainer.innerHTML = "";
           removePreview();
           surveyCompleted = false;
@@ -2819,23 +2899,20 @@
           sessionGallery = [];
           imageForNextRender = null;
 
+          // THÊM ĐÚNG DÒNG NÀY VÀO ĐÂY!
+          selectedTemplateId = null; 
+
           try {
             await fetch("/reset", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ session_id: sessionId }),  // session cũ, chỉ xóa history
+              body: JSON.stringify({ session_id: sessionId }),  
             });
           } catch (e) {}
 
           addMessage("ai", "Hey bestie! I'm your POD design assistant ✨<br>What kind of apparel are we creating today? Tell me your ideas or drop an image!");
         }
       }
-      msgInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
-        }
-      });
 
       window.onload = async function () {
         // Khởi động đồng hồ đếm ngược và mồi cache lần đầu
