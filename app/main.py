@@ -609,65 +609,6 @@ except Exception as e:
 async def get_mockups():
     return JSONResponse(content=MOCKUPS_DATA)
 
-@app.post("/api/warmup-cache")
-async def warmup_cache_endpoint(request: Request):
-    try:
-        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-        force = body.get("force_reload", False)
-
-        system_message = {
-            "role": "system",
-            "content": [
-                {
-                    "type": "text",
-                    "text": _get_base_system_prompt(force_reload=force),
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ],
-        }
-
-        payload = {
-            "model": config.CONVERSATION_MODEL,
-            "messages": [system_message],
-            "max_tokens": 1,
-            "temperature": config.CHAT_TEMPERATURE,
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "pod_output",
-                    "strict": True,
-                    "schema": prompts.JSON_SCHEMA,
-                },
-            },
-            "store": config.STORE_CONTEXT,
-            "reasoning": {"effort": config.REASONING_EFFORT},
-        }
-
-        headers = {
-            "Authorization": f"Bearer {config.XAI_API_KEY}",
-            "Content-Type": "application/json",
-        }
-
-        # Chạy nền — không chờ kết quả, không block
-        def _fire():
-            try:
-                requests.post(
-                    f"{config.XAI_BASE_URL}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                    timeout=60,  # timeout dài hơn vì chạy nền
-                )
-                print("🔥 [Cache Warming] Đã mồi & gia hạn Prompt Caching thành công!")
-            except Exception as e:
-                print(f"⚠️ [Cache Warming] Lỗi nền: {e}")
-
-        asyncio.get_event_loop().run_in_executor(None, _fire)
-        return JSONResponse(content={"status": "warming_in_background"})
-
-    except Exception as e:
-        print(f"⚠️ [Cache Warming] Bỏ qua lỗi mồi cache: {e}")
-        return JSONResponse(content={"status": "skipped"})
-    
 @app.post("/chat")
 async def chat_endpoint(request: Request):
     data = await request.json()

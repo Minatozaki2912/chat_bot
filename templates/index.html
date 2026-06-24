@@ -1160,25 +1160,6 @@
     </div>
 
     <script>
-      // --- HỆ THỐNG GIA HẠN CACHE 5 PHÚT (CACHE KEEP-ALIVE) ---
-      let idleTimer;
-      // Đặt 4.5 phút (270,000 ms) để an toàn bắn request trước khi Cache 5 phút của AI bị chết
-      const IDLE_TIME_LIMIT = 4.5 * 60 * 1000; 
-
-      function resetIdleTimer() {
-        clearTimeout(idleTimer);
-        idleTimer = setTimeout(() => {
-          console.log("⏳ Khách treo máy 4.5 phút. Đang nạp lại luật và gia hạn Cache...");
-          fetch("/api/warmup-cache", { 
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ force_reload: true }) // Ra lệnh Backend đọc lại file
-          }).catch(e => console.log("Lỗi gia hạn cache"));
-          
-          // Sau khi gia hạn xong, tự động thiết lập lại đồng hồ đếm ngược tiếp
-          resetIdleTimer(); 
-        }, IDLE_TIME_LIMIT);
-      }
       // Mỗi lần load trang = 1 session mới, không bao giờ trùng
       // Dùng sessionStorage: Tab nào ID đó. Đóng tab là tự động hủy, F5 vẫn giữ nguyên.
       let sessionId = sessionStorage.getItem("sessionId");
@@ -1754,7 +1735,6 @@
       }
       // HÀM BẮN API RIÊNG CHO TEMPLATE ĐỂ TRUYỀN ID XUỐNG BACKEND
       async function sendTemplateMessage(text, templateId, imagesBase64) {
-        resetIdleTimer();
         currentImagesBase64 = []; // Reset để không bị dính vào luồng chat thường
         hasUploadedImageInSession = true;
         imageForNextRender = imagesBase64; // Giữ ảnh Chủ Thể làm base dự phòng
@@ -1923,7 +1903,6 @@
       }
 
       async function sendMessage() {
-        resetIdleTimer();
         const text = msgInput.value.trim();
         if (!text && currentImagesBase64.length === 0) return;
 
@@ -2915,12 +2894,6 @@
       }
 
       window.onload = async function () {
-        // Khởi động đồng hồ đếm ngược và mồi cache lần đầu
-        fetch("/api/warmup-cache", { method: "POST" }).catch(e => console.log("Warmup skipped"));
-        resetIdleTimer();
-        // [CẬP NHẬT MỚI]: Bắn tín hiệu ngầm báo Backend mồi Prompt Caching ngay lập tức
-        fetch("/api/warmup-cache", { method: "POST" }).catch(e => console.log("Warmup skipped"));
-
         // Xóa history chat cũ trên server (F5 hoặc reload) — giữ nguyên sessionId
         try {
           await fetch("/reset", {

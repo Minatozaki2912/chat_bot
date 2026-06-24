@@ -25,7 +25,21 @@ JSON_SCHEMA = {
         },
         "vision_analysis_subject": {
             "type": ["string", "null"],
-            "description": "CRITICAL FOR TEMPLATES: Meticulously describe the MAIN SUBJECT(s) from the uploaded images. Focus heavily on IDENTITY: facial geometry, feature spacing, eye shape, nose, mouth, jawline, skin tone, age, hairstyle, expression, and distinctive marks. For animals: breed, markings. Do NOT describe the background unless it's explicitly needed by the template — for true_subject_replacement specifically, Image 1 is an existing GRAPHIC DESIGN (not a real photo): describe (a) the original main subject's identity and species/type so it's clear what is being replaced, (b) ALL surrounding design elements to preserve — props, accessories on the subject, decorative objects, circular frames, banners, sparkles, and their spatial arrangement, (c) the art style, line weight, shading technique, and color scheme of the overall design, and (d) ALL text/typography present in the design — for EACH text element, note the exact wording AND classify it as GENERIC (does not reference the specific original subject, must be kept as-is) or SUBJECT-SPECIFIC (directly names or describes the original subject, must be adapted to the new subject). For subject_replacement_layout specifically, ALSO meticulously describe Image 1's subject's clothing/outfit (garment type, color, pattern, accessories, hat, etc.) in addition to facial/identity details — this clothing must be carried over and rendered on the new pose, so omitting it will cause the render to lose the outfit. CRITICAL EXCLUSION for subject_replacement_layout ONLY: do NOT describe Image 1's own pose, body angle, gesture, or stance anywhere in this field — pose must come exclusively from Image 2 per the template rule, and even an incidental mention of Image 1's pose here risks the render keeping Image 1's pose instead of switching to Image 2's."
+            "description": """Describe the MAIN SUBJECT(s) from the uploaded image(s) for use in the master_prompt.
+
+For ALL templates — focus on IDENTITY: facial geometry, feature spacing, eye shape, nose, mouth, jawline, skin tone, age, hairstyle, expression, distinctive marks. For animals: species/breed, muzzle shape, ear type, eye color, fur pattern/markings.
+
+Template-specific rules:
+
+[true_subject_replacement] — Image 1 is an EXISTING GRAPHIC DESIGN. Describe it in 3 parts:
+  (a) ORIGINAL SUBJECT: its species/type and key visual traits (so it's clear what is being removed).
+  (b) DESIGN ELEMENTS TO PRESERVE: ALL props, accessories worn by the original subject (e.g., ice pack, scarf, thermometer), surrounding decorative objects, frames, sparkles, spatial layout, art style, line weight, shading, color scheme.
+  (c) TYPOGRAPHY: exact wording of each text element + classify as GENERIC (keep as-is) or SUBJECT-SPECIFIC (adapt to new subject).
+  ⚠️ CRITICAL: NEVER describe the desired replacement subject here. This field must reflect ONLY what is currently in Image 1. Any description of the new subject here will contaminate Step 3 and cause the image generator to draw the wrong output. The new subject goes in Step 5 (Replacement target) ONLY.
+
+[subject_replacement_layout] — describe Image 1's subject identity AND clothing/outfit in full detail (garment type, color, pattern, accessories, hat). Do NOT mention Image 1's pose, body angle, or stance — pose comes exclusively from Image 2.
+
+[All other templates] — describe identity and key visual features concisely. Do not describe the background unless the template rule explicitly requires it."""
         },
         "vision_analysis_style": {
             "type": ["string", "null"],
@@ -46,12 +60,16 @@ JSON_SCHEMA = {
 Build in this exact order — no added prefixes, preambles, or duplicate rules:
 0. SCENE MODE MARKER (ALWAYS FIRST, MANDATORY): Start with exactly one of these two lines, then a newline, before anything else:
    - "[SCENE_MODE: BLACK_CANVAS]" — use this by default, and whenever the Active Template's rule does NOT explicitly activate its scene exception.
-   - "[SCENE_MODE: FULL_SCENE]" — use this ONLY when the Active Template's rule explicitly activates its scene exception for this specific case (e.g., subject_replacement_layout always activates it). Do NOT use this for face_character_swap.
+   - "[SCENE_MODE: FULL_SCENE]" — use this ONLY when the Active Template's rule explicitly activates its scene exception for this specific case. Do NOT use this for face_character_swap.
 1. CANVAS LINE: If SCENE_MODE is BLACK_CANVAS, add the Canvas Law line verbatim from [CANVAS LAW]. If SCENE_MODE is FULL_SCENE, skip this line and state the setting as background.
-2. TASK DIRECTIVE: Copy the `image_gen_brief` field from the Active Template verbatim.
-3. SUBJECT: 'Subject: ' + [Translate vision_analysis_subject into highly condensed visual keywords focusing on exact facial identity, features, markings, and outfit. Do NOT paste the verbose paragraph].
-4. STYLE: 'Style: ' + [Translate vision_analysis_style into 4-8 dense keywords]. (omit if null).
-5. TWEAKS: For true_subject_replacement — MANDATORY REPLACEMENT LINE (first line of step 5): 'Replacement target: [new subject] — remove original subject entirely and draw this instead, matching pose/scale/role.' For other templates: user outfit/pose changes, concisely.
+2. TASK DIRECTIVE: You MUST copy the image_gen_brief field from the Active Template EXACTLY WORD-FOR-WORD. Do not summarize or paraphrase.
+3. REPLACEMENT TARGET (true_subject_replacement ONLY — write this BEFORE Design context, always):
+   'Replacement target: [new subject as user described]. Draw [new subject] as the SOLE primary subject — remove the original [original species/type] completely. [new subject] inherits ALL accessories from the original (list each accessory explicitly) in identical positions. Same pose, scale, role, and art style as original.'
+   ⚠️ This line is the #1 directive for the image generator — if omitted or placed after Design context, the generator defaults to re-drawing the original subject. Always write it first.
+4. DESIGN CONTEXT (true_subject_replacement ONLY — write AFTER Replacement target):
+   'Design context: ' + [dense keywords of the NEW SUBJECT, art style, surrounding decorative elements, composition, color scheme, typography wording. ABSOLUTELY DO NOT describe the original subject's species, body, or appearance here — that information would cause the generator to re-draw the original instead of the replacement.]
+   For all other templates: 'Subject: ' + [dense visual keywords of facial identity, features, markings, outfit].
+5. STYLE: 'Style: ' + [4-8 dense keywords from vision_analysis_style]. (omit if null).
 6. QUOTE: If quote provided — 'Typography: "[QUOTE]" fully visible, safe padding ALL sides, never cropped.' If none — 'No typography.' EXCEPTION for subject_replacement_layout: skip this step entirely.
 7. FIT: If BLACK_CANVAS — 'Centered on pure #000000, ~5% padding, nothing cropped.' If FULL_SCENE — 'Centered composition, full scene visible, ~5% padding, nothing cropped.'"""
         }
