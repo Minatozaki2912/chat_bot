@@ -31,11 +31,7 @@ For ALL templates — focus on IDENTITY: facial geometry, feature spacing, eye s
 
 Template-specific rules:
 
-[true_subject_replacement] — Image 1 is an EXISTING GRAPHIC DESIGN. Describe it in 3 parts:
-  (a) ORIGINAL SUBJECT: its species/type and key visual traits (so it's clear what is being removed).
-  (b) DESIGN ELEMENTS TO PRESERVE: ALL props, accessories worn by the original subject (e.g., ice pack, scarf, thermometer), surrounding decorative objects, frames, sparkles, spatial layout, art style, line weight, shading, color scheme.
-  (c) TYPOGRAPHY: exact wording of each text element + classify as GENERIC (keep as-is) or SUBJECT-SPECIFIC (adapt to new subject).
-  ⚠️ CRITICAL: NEVER describe the desired replacement subject here. This field must reflect ONLY what is currently in Image 1. Any description of the new subject here will contaminate Step 3 and cause the image generator to draw the wrong output. The new subject goes in Step 5 (Replacement target) ONLY.
+[true_subject_replacement] — Image 1 is an existing graphic design to be edited. Describe ONLY the core graphic/illustration: the main subject (species/type, pose, key visual traits), all accessories/props with their positions, art style (medium, line weight, shading, color palette), and all text/typography with exact wording. CRITICAL: DO NOT describe any mockup (e.g., t-shirt, mug, person wearing it) and DO NOT describe the background/scene. This description is used to faithfully recreate the isolated design before applying the user's edit.
 
 [subject_replacement_layout] — describe Image 1's subject identity AND clothing/outfit in full detail (garment type, color, pattern, accessories, hat). Do NOT mention Image 1's pose, body angle, or stance — pose comes exclusively from Image 2.
 
@@ -56,22 +52,20 @@ Template-specific rules:
         "master_prompt": {
             "type": ["string", "null"],
             "description": """[MASTER PROMPT CONSTRUCTION]: Only populate when is_ready_to_render=true.
-[COMPRESSION MANDATE]: Image generation APIs fail or lose focus on extremely long prompts. You MUST condense the descriptions (especially Subject and Style) into dense, comma-separated visual keywords. Omit conversational filler, long sentences, and redundant instructions. Maximize keyword density.
-Build in this exact order — no added prefixes, preambles, or duplicate rules:
-0. SCENE MODE MARKER (ALWAYS FIRST, MANDATORY): Start with exactly one of these two lines, then a newline, before anything else:
-   - "[SCENE_MODE: BLACK_CANVAS]" — use this by default, and whenever the Active Template's rule does NOT explicitly activate its scene exception.
-   - "[SCENE_MODE: FULL_SCENE]" — use this ONLY when the Active Template's rule explicitly activates its scene exception for this specific case. Do NOT use this for face_character_swap.
-1. CANVAS LINE: If SCENE_MODE is BLACK_CANVAS, add the Canvas Law line verbatim from [CANVAS LAW]. If SCENE_MODE is FULL_SCENE, skip this line and state the setting as background.
-2. TASK DIRECTIVE: You MUST copy the image_gen_brief field from the Active Template EXACTLY WORD-FOR-WORD. Do not summarize or paraphrase.
-3. REPLACEMENT TARGET (true_subject_replacement ONLY — write this BEFORE Design context, always):
-   'Replacement target: [new subject as user described]. Draw [new subject] as the SOLE primary subject — remove the original [original species/type] completely. [new subject] inherits ALL accessories from the original (list each accessory explicitly) in identical positions. Same pose, scale, role, and art style as original.'
-   ⚠️ This line is the #1 directive for the image generator — if omitted or placed after Design context, the generator defaults to re-drawing the original subject. Always write it first.
-4. DESIGN CONTEXT (true_subject_replacement ONLY — write AFTER Replacement target):
-   'Design context: ' + [dense keywords of the NEW SUBJECT, art style, surrounding decorative elements, composition, color scheme, typography wording. ABSOLUTELY DO NOT describe the original subject's species, body, or appearance here — that information would cause the generator to re-draw the original instead of the replacement.]
+[COMPRESSION MANDATE]: Keep total output under 1500 characters. Use dense visual keywords, not long sentences.
+Build in this exact order:
+0. SCENE MODE MARKER (ALWAYS FIRST):
+   - "[SCENE_MODE: BLACK_CANVAS]" — default for all templates except subject_replacement_layout.
+   - "[SCENE_MODE: FULL_SCENE]" — only for subject_replacement_layout.
+1. CANVAS LINE: If BLACK_CANVAS → add Canvas Law line verbatim. If FULL_SCENE → state the existing background.
+2. TASK DIRECTIVE: Copy the `image_gen_brief` from the Active Template EXACTLY, word-for-word.
+3. SOURCE + EDIT (for true_subject_replacement):
+   'Source design: ' + [concise description of the full original design — subject, accessories/props with positions, art style, typography].
+   'Edit: ' + [the user's requested change, stated clearly and concisely].
    For all other templates: 'Subject: ' + [dense visual keywords of facial identity, features, markings, outfit].
-5. STYLE: 'Style: ' + [4-8 dense keywords from vision_analysis_style]. (omit if null).
-6. QUOTE: If quote provided — 'Typography: "[QUOTE]" fully visible, safe padding ALL sides, never cropped.' If none — 'No typography.' EXCEPTION for subject_replacement_layout: skip this step entirely.
-7. FIT: If BLACK_CANVAS — 'Centered on pure #000000, ~5% padding, nothing cropped.' If FULL_SCENE — 'Centered composition, full scene visible, ~5% padding, nothing cropped.'"""
+4. STYLE: 'Style: ' + [4-8 dense keywords]. (omit if null/not applicable).
+5. QUOTE: If quote provided → 'Typography: "[QUOTE]" fully visible, safe padding ALL sides, never cropped, matching art style.' If none → 'No typography.' EXCEPTION for subject_replacement_layout: skip entirely.
+6. FIT: If BLACK_CANVAS → 'Centered on pure #000000, ~5% padding, nothing cropped.' If FULL_SCENE → 'Centered composition, full scene visible, ~5% padding, nothing cropped.'"""
         }
     },
     "required": [

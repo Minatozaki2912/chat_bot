@@ -409,7 +409,8 @@ def call_image_generation(
         LEGACY_FULL_SCENE_TEMPLATES = {"subject_replacement_layout"}
         is_full_scene_mode = template_id in LEGACY_FULL_SCENE_TEMPLATES
 
-    skip_black_background = is_retry or is_full_scene_mode
+   # Ép lệnh nền đen cho TẤT CẢ các design POD, kể cả Edit/Retry, trừ khi Template báo FULL_SCENE
+    skip_black_background = is_full_scene_mode
 
     if skip_black_background:
         full_prompt = cleaned_prompt
@@ -422,7 +423,8 @@ def call_image_generation(
     if len(full_prompt) != original_len:
         print(f"🗜️  [Prompt] {original_len} → {len(full_prompt)} chars after compression")
 
-    selected_model = config.IMAGE_MODEL_EDIT if is_retry else config.IMAGE_MODEL_GEN
+    # Đảm bảo dùng model Edit cho bất kỳ request nào có ảnh đính kèm (giống như Retry)
+    selected_model = config.IMAGE_MODEL_EDIT if (is_retry or (reference_images and len(reference_images) > 0)) else config.IMAGE_MODEL_GEN
 
     try:
         if reference_images and len(reference_images) > 0:
