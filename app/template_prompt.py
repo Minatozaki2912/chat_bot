@@ -64,14 +64,18 @@ Build in this exact order:
    'Edit: ' + [the user's requested change, stated clearly and concisely].
    For all other templates: 'Subject: ' + [dense visual keywords of facial identity, features, markings, outfit].
 4. STYLE: 'Style: ' + [4-8 dense keywords]. (omit if null/not applicable).
-5. QUOTE: If quote provided → 'Typography: "[QUOTE]" fully visible, safe padding ALL sides, never cropped, matching art style.' If none → 'No typography.' EXCEPTION for subject_replacement_layout: skip entirely.
+5. QUOTE — determine which case applies and write the Typography line accordingly:
+   - CASE 1 (exact quote given): 'Typography: "[EXACT QUOTE VERBATIM]" — place in the best open area (below/above/beside subject), fully visible, safe padding all sides, never cropped, style matches design.'
+   - CASE 2 (user asked AI to create quote matching a theme): 'Typography: "[INVENTED QUOTE matching user's theme/mood, 3-8 words]" — place in the best open area, fully visible, safe padding all sides, never cropped, style matches design.'
+   - CASE 3 (no quote input — auto-generate): 'Typography: "[INVENTED QUOTE fitting the character/theme/style, 3-8 words]" — place in the best open area, fully visible, safe padding all sides, never cropped, style matches design.'
+   - EXCEPTION subject_replacement_layout: skip this step entirely — never write anything here.
 6. FIT: If BLACK_CANVAS → 'Centered on pure #000000, ~5% padding, nothing cropped.' If FULL_SCENE → 'Centered composition, full scene visible, ~5% padding, nothing cropped.'"""
         }
     },
-    "required": [
+    "required": [   
         "safety_status",
         "database_action",
-        "entities_extracted",
+        "entities_extracted",   
         "vision_analysis_subject",
         "vision_analysis_style",
         "user_reply",
@@ -104,11 +108,19 @@ Every `master_prompt` MUST begin with this exact line (instruction only — neve
 All artwork must be open composition — subject and elements floating directly on raw black, never enclosed or inside any container/scenic panel.
 
 **Exception, defined per-template only:** A specific Template Rule may explicitly state that a full scene/background replaces the black canvas (e.g., `subject_replacement_layout` uses the existing background). This exception applies ONLY when the matching Template Rule explicitly says so — never assume it on your own, and never apply it to a template whose rule doesn't explicitly mandate it.
-### [TYPOGRAPHY & QUOTES]
-- **Exact Quote:** If the user provided a quote (e.g., 'Quote in thêm: "Stay Wild"'), integrate it naturally into the design.
-- **Auto-Quote Required:** If the system instructs `[AUTO-QUOTE REQUIRED]`, you MUST independently invent a short, witty, or meaningful phrase (3-8 words) that fits the characters and style perfectly, and command the image generator to print it. 
-- **MANDATORY: NEVER LET TEXT GET CROPPED.** Typography must be fully visible and entirely inside the canvas with safe padding on every side (top, bottom, left, AND right) — never cropped, cut off, or running off any edge. Size the text to comfortably fit whatever open space is actually available; if the open area is tight, make the text smaller or trim it rather than letting it overflow the canvas.
-- Typography must share the canvas organically. It must not be covered by the characters or squeezed into a corner.
+### [TYPOGRAPHY & QUOTES — 3 CASES]
+Identify which case applies, then execute accordingly:
+
+**CASE 1 — EXACT QUOTE:** User provided a specific phrase to print (e.g., 'Quote: "Stay Wild"', 'thêm chữ: "Born to Run"'). → Use that phrase VERBATIM, character-for-character. Do not alter, paraphrase, or translate it.
+
+**CASE 2 — CREATIVE DIRECTION:** User asked the AI to invent a quote matching a theme or mood (e.g., "nghĩ ra câu hay về chó", "tạo quote hài hước", "think of a funny quote about cats"). → Invent a short, creative, fitting phrase (3-8 words) that matches the requested theme/mood AND fits the character/style of the design.
+
+**CASE 3 — NO INPUT (AUTO-GENERATE):** User left the quote field empty or did not mention a quote at all. → Independently invent a short, witty, or meaningful phrase (3-8 words) that fits the character(s), theme, and art style of the design perfectly. Make it feel purposeful, not generic.
+
+**EXCEPTION — subject_replacement_layout:** Skip all quote logic entirely. Existing text from Image 2 is preserved as-is by the template rule.
+
+**PLACEMENT (all cases with a quote):** Choose the single best open area in the composition where the quote reads cleanly — typically below, above, or beside the subject. The text must: be fully visible inside the canvas with safe padding on all sides; never overlap or compete with the subject; match the art style of the design (font feel, color, weight); never be cropped or run off any edge.
+
 
 ### [CONVERSATION FLOW - TEMPLATE MODE]
 Since you are in Template Mode, the flow is aggressively streamlined:

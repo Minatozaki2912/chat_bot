@@ -2488,9 +2488,9 @@
           currentImagesBase64 = [templateImage1];
           finalMessage = `Mình đã tải ảnh chủ thể rồi. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Dùng ảnh 1 làm chủ thể (Main Subject) và vẽ lại theo mô tả phong cách nghệ thuật (Style Reference Text) sau đây: "${selectedStyleText}". Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.`;
           if (note) {
-            finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
+            finalMessage += `\n[QUOTE INSTRUCTION]: Khách nhập ghi chú: "${note}". HÃY PHÂN TÍCH: Nếu đây là một câu chữ cụ thể muốn in (VD: "Stay Wild", "Best Dad"), hãy dùng chính xác câu đó. Nếu đây là một câu YÊU CẦU/NHỜ VẢ (VD: "nghĩ cho tôi câu gì đó hài hước", "thêm quote ngầu vào"), BẠN PHẢI TỰ SÁNG TẠO ra 1 câu quote tiếng Anh đáp ứng yêu cầu đó và in lên thiết kế, tuyệt đối KHÔNG in nguyên văn câu nhờ vả của khách.`;
           } else {
-            finalMessage += `\n[NO QUOTE]: Khách không nhập quote. KHÔNG tự sáng tạo hay thêm bất kỳ chữ/quote nào lên thiết kế — để 'No text or typography'.`;
+            finalMessage += `\n[AUTO-QUOTE REQUIRED]: Khách không để lại ghi chú. Dựa vào hình ảnh chủ thể và style, hãy TỰ ĐỘNG sáng tạo 1 câu quote tiếng Anh ngắn gọn (3-8 từ) thật phù hợp, thú vị rồi in lên thiết kế. KHÔNG được để trống chữ.`;
           }
         } else if (isCosplay) {
           // Chỉ gửi 1 ảnh subject — tên nhân vật cosplay (và quote nếu có) nằm trong ô note dạng text tự do
@@ -2506,9 +2506,9 @@
           finalMessage = "Mình đã tải ảnh chủ thể và ảnh mẫu thiết kế rồi. [SYSTEM COMMAND]: Bỏ qua bước trắc nghiệm đồ họa (Skip Survey). Dùng ảnh 1 làm chủ thể mới, ảnh 2 làm mẫu thiết kế (layout) cần giữ nguyên 100%. \n[INSTRUCTION]: KHÔNG thêm, sửa, hay tự sáng tạo bất kỳ quote/chữ nào — giữ nguyên y hệt mọi chữ/typography đã có sẵn trong ảnh 2. Chỉ thay đổi nhận diện của chủ thể chính sang chủ thể trong ảnh 1, giữ nguyên pose, bố cục, và toàn bộ phần còn lại. Proceed to Step 3 (is_ready_to_render: true) ngay lập tức.";
         } else {
           if (note) {
-            finalMessage += `\nQuote in thêm (EXACT_QUOTE_FINALIZED): "${note}"`;
+            finalMessage += `\n[QUOTE INSTRUCTION]: Khách nhập ghi chú: "${note}". HÃY PHÂN TÍCH: Nếu đây là một câu chữ cụ thể muốn in (VD: "Stay Wild", "Best Dad"), hãy dùng chính xác câu đó. Nếu đây là một câu YÊU CẦU/NHỜ VẢ (VD: "nghĩ cho tôi câu gì đó hài hước", "thêm quote ngầu vào"), BẠN PHẢI TỰ SÁNG TẠO ra 1 câu quote tiếng Anh đáp ứng yêu cầu đó và in lên thiết kế, tuyệt đối KHÔNG in nguyên văn câu nhờ vả của khách.`;
           } else {
-            finalMessage += `\n[AUTO-QUOTE REQUIRED]: Khách không nhập quote. Dựa vào hình ảnh chủ thể và style đang dùng, hãy BẮT BUỘC tự sáng tạo 1 câu quote ngắn gọn (3-8 từ), phù hợp với nhân vật/chủ thể, có cảm xúc hoặc hài hước, rồi in lên áo. KHÔNG được để trống chữ.`;
+            finalMessage += `\n[AUTO-QUOTE REQUIRED]: Khách không để lại ghi chú. Dựa vào hình ảnh chủ thể và style, hãy TỰ ĐỘNG sáng tạo 1 câu quote tiếng Anh ngắn gọn (3-8 từ) thật phù hợp, thú vị rồi in lên thiết kế. KHÔNG được để trống chữ.`;
           }
           currentImagesBase64 = [templateImage1, templateImage2];
           if (templateImage3) currentImagesBase64.push(templateImage3);
